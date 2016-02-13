@@ -4,97 +4,93 @@
 import rospy
 import RPi.GPIO as GPIO
 import trajectory
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, String
+
+# Variables
+node_name = 'motor_control_x'
 
 
-class pos_control_x():
+class motor_control_x():
 
     def __init__(self):
 
-        #init GPIO
+        # GPIO pins
+        self.enable_pin = 10
+        self.control_pin = 8
+        self.dir_pin = 12
+
+        # Init GPIO
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
-        GPIO.setup(8, GPIO.OUT)
-        GPIO.setup(10, GPIO.OUT)
-        GPIO.setup(12, GPIO.OUT)
+        GPIO.setup(self.control_pin, GPIO.OUT)
+        GPIO.setup(self.enable_pin, GPIO.OUT)
+        GPIO.setup(self.dir_pin, GPIO.OUT)
 
-        #Constant
+        # ROS init
+        self.rate = rospy.Rate(10) # 10Hz
+
+        # ROS subscriptions
+        self.subscriber = rospy.Subscriber("X_Pos", Float32, self.callback_pos)
+        self.subscriber = rospy.Subscriber("X_Vel", Float32, self.callback_vel)
+        self.subscriber = rospy.Subscriber("Motor_Kill", String, self.callback_kill)
+
+        # Constants
         self.dist_step = 0.127
         self.mode_step = 0.25 # 4 pulses per step
 
-        #init var
-        self.axis = 0
+        # Movement mode
+        self.vel_flag = 0
+
+        # Position control
         self.delta = 0
         self.direction = 0
         self.f_max = 3500
         self.f_min = 500
         self.plat_size = 0.5
         self.pulse = self.dist_step * self.mode_step
-        self.run = 1
-        self.pos = 0
         self.max_slope = 10
-
-        self.enable_pin = 10
-        self.control_pin = 8
-        self.dir_pin = 12
-
         self.error_pulse = 0 # Rounding error
+
+        # Velocity frequency control
+        self.vel = 0
 
         # GPIO output init
         GPIO.output(self.dir_pin, self.direction)
         GPIO.output(self.enable_pin, GPIO.HIGH)
         GPIO.output(self.control_pin, GPIO.LOW)
 
-        # ROS init
-        self.rate = rospy.Rate(10) # 10Hz
-        self.subscriber = rospy.Subscriber("X_Move", Float32, self.callback)
 
+    # Callback for new position
+    def callback_pos(self, data):
+        self.delta = data.data
+        trajectory.pos_move(self)
 
-    def callback(self, data):
-        self.delta=data.data
-        self.pos_move_x()
+    # Callback for new velocity
+    def callback_vel(self, data):
+        self.vel_flag = 1
+        self.vel = data.data
 
+    # Callback to kill motor
+    def callback_kill(self, data):
+        if data.data == node_name:
+            rospy.signal_shutdown(data.data)
+
+    # Listening function
     def listener(self):
-        rospy.spin()
-
-    def pos_move_x(self):
-        # Direction
-        if self.delta < 0:
-            self.direction = 0
-            GPIO.output(self.dir_pin, self.direction)
-        else:
-            self.direction = 1
-            GPIO.output(self.dir_pin, self.direction)
-
-        # Movement
-        nb_pulse_float = abs(self.delta)/self.pulse
-        self.nb_pulse = int(round(nb_pulse_float))
-        self.error_pulse += nb_pulse_float - self.nb_pulse
-        # print("\nBefore error : {0}".format(self.error_pulse))
-        # print("Before nb_pulse : {0}".format(self.nb_pulse))
-
-        # Adjust values if error is greater than 1 pulse
-        if self.error_pulse < -1:
-            self.error_pulse += 1
-            self.nb_pulse -= 1
-        elif self.error_pulse > 1:
-            self.error_pulse -= 1
-            self.nb_pulse += 1
-
-        # print("After error : {0}".format(self.error_pulse))
-        # print("After nb_pulse : {0}".format(self.nb_pulse))
-
-        if self.nb_pulse != 0:
-            trajectory.axis_move(self.enable_pin, self.control_pin, self.nb_pulse,\
-                            self.f_max, self.f_min, self.plat_size, self.max_slope)
+        while not rospy.is_shutdown():
+            self.rate.sleep()
+            if self.vel_flag:
+                trajectory.vel_move(self)
+        #rospy.spin()
 
 
+# Main function
 if __name__ == '__main__':
-    rospy.init_node('pos_control_x', anonymous=True)
+    rospy.init_node(node_name, anonymous=True)
 
     try:
-        pc = pos_control_x()
-        pc.listener()
+        mcx = motor_control_x()
+        mcx.listener()
 
     except rospy.ROSInterruptException as e:
         print(e)
