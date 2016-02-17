@@ -5,45 +5,41 @@ import time
 import RPi.GPIO as GPIO
 
 # Functions
-def soft_move(N, f_max, f_min, plat_size, max_slope):
+def soft_move(self):
     """
-    Creates a list of time values to use as PWM to move the platform according to
-    multiple input parameters.
-    Inputs: - N             Number of motor steps  needed
-            - f_max         Maximal frequency (Hz)
-            - f_min         Minimal frequency (Hz)
-            - plat_size     Size of plateau (0 to 1)
-            - max_slope     Maximum value to prevent harsh transitions
-
-    Output: - dt            The time array associated to frequencies that
-                            form a trapeze (ramp up, plateau, ramp down).
+    Creates a list of time values to use as PWM to move the platform
+    according to multiple input parameters.
+    Input:  motor_control node object
+    Output: The time array associated to frequencies that form a
+            trapeze (ramp up, plateau, ramp down).
     """
 
     # Return nothing if any argument is invalid
-    for arg in locals().values():
-        if arg <= 0:
-            print("Error - soft_move invalid argument : {0} <= 0".format(arg))
+    used_params = [self.nb_pulse, self.f_max, self.f_min, self.plat_size, self.max_slope]
+    for param in used_params:
+        if param <= 0:
+            print("Error - soft_move invalid argument : {0} <= 0".format(param))
             return None
 
     # Calculate center index
-    center_ind = round(N/2)
+    center_ind = round(self.nb_pulse/2.)
 
     # Calculate beginning of plateau index
-    plat_ind = round(center_ind-round(plat_size*N)/2)
+    plat_ind = round(center_ind-round(self.plat_size*self.nb_pulse)/2)
 
-    # if no ramp, return slowest movement
+    # If no ramp, return slowest movement
     if plat_ind < 1:
         print("plat_ind < 1")
-        dt = [1/float(f_min)]*N
+        dt = [0.5/self.f_min]*self.nb_pulse
         return(dt)
 
     # Calculate frequency slope
-    slope = min((f_max-f_min)/(plat_ind), max_slope)
+    slope = min((self.f_max-self.f_min)/(plat_ind), self.max_slope)
 
-    # Generate instantaneous frequency points
-    dF = [slope*i+f_min for i in range(int(plat_ind+1))]
+    # Generate instantaneous frequency points (trapeze)
+    dF = [slope*i+self.f_min for i in range(int(plat_ind)+1)]
     dF = dF + [dF[-1]]*int(center_ind-plat_ind-1)
-    buf = [dF[-1]] if N&1 else []   # Account for even/odd number of points
+    buf = [dF[-1]] if self.nb_pulse&1 else []  # Account for even/odd number of points
     dF = dF[:int(center_ind)]
     dF = dF + buf + dF[::-1]
 
@@ -52,28 +48,33 @@ def soft_move(N, f_max, f_min, plat_size, max_slope):
 
     return dt
 
-def axis_move(enable_pin, control_pin, N, fmax, fmin, plat_size, max_slope):
+def axis_move(self):
+    """
+    Generates a clock signal on the GPIO pins of the motor_control node object.
+    """
 
-    dt = soft_move(N, fmax, fmin, plat_size, max_slope)
+    dt = soft_move(self)
 
-    GPIO.output(enable_pin, GPIO.LOW)
+    GPIO.output(self.enable_pin, GPIO.LOW)
     time.sleep(0.01)
 
-    for x in range(N):
+    for x in range(self.nb_pulse):
         time_begin = time.clock()
-        GPIO.output(control_pin, GPIO.HIGH)
+        GPIO.output(self.control_pin, GPIO.HIGH)
 
         while(time.clock() - time_begin < dt[x]):
+            # Can be improved with interrupts
             pass
 
         time_begin = time.clock()
 
-        GPIO.output(control_pin, GPIO.LOW)
+        GPIO.output(self.control_pin, GPIO.LOW)
 
         while(time.clock() - time_begin < dt[x]):
+            # Can be improved with interrupts
             pass
 
-    GPIO.output(enable_pin, GPIO.HIGH)
+    GPIO.output(self.enable_pin, GPIO.HIGH)
 
 
 def pos_move(self):
@@ -99,8 +100,7 @@ def pos_move(self):
         self.nb_pulse += 1
 
     if self.nb_pulse != 0:
-        axis_move(self.enable_pin, self.control_pin, self.nb_pulse,\
-                self.f_max, self.f_min, self.plat_size, self.max_slope)
+        axis_move(self)
 
 
 def vel_move(self):
@@ -137,25 +137,19 @@ def vel_move(self):
         GPIO.output(self.control_pin, GPIO.HIGH)
 
         while(time.clock() - time_begin < dt):
+            # Can be improved with interrupts
             pass
 
         time_begin = time.clock()
         GPIO.output(self.control_pin, GPIO.LOW)
 
         while(time.clock() - time_begin < dt):
+            # Can be improved with interrupts
             pass
 
     GPIO.output(self.enable_pin, GPIO.HIGH)
 
 
 if __name__ == "__main__":
-    N = 100
-    f_max = 4000
-    f_min = 500
-    plat_size = 0.8
-    max_slope = 5000
-
-    dt = soft_move(N, f_max, f_min, plat_size, max_slope)
-    for t in dt:
-        print(t)
+    pass
 

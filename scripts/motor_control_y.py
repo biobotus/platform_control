@@ -27,7 +27,7 @@ class motor_control_y():
         GPIO.setup(self.dir_pin, GPIO.OUT)
 
         # ROS init
-        self.rate = rospy.Rate(10) # 10Hz
+        self.rate = rospy.Rate(10)  # 10Hz
 
         # ROS subscriptions
         self.subscriber = rospy.Subscriber("Y_Pos", Float32, self.callback_pos)
@@ -36,7 +36,7 @@ class motor_control_y():
 
         # Constants
         self.dist_step = 0.127
-        self.mode_step = 0.25 # 4 pulses per step
+        self.mode_step = 0.25  # 4 pulses per step
 
         # Movement mode
         self.vel_flag = 0
@@ -49,7 +49,7 @@ class motor_control_y():
         self.plat_size = 0.5
         self.pulse = self.dist_step * self.mode_step
         self.max_slope = 10
-        self.error_pulse = 0 # Rounding error
+        self.error_pulse = 0  # Rounding error
 
         # Velocity frequency control
         self.vel = 0
@@ -81,7 +81,7 @@ class motor_control_y():
             self.rate.sleep()
             if self.vel_flag:
                 trajectory.vel_move(self)
-        #rospy.spin()
+        # rospy.spin()  # old code - do we keep it?
 
 
 # Main function
@@ -94,4 +94,4 @@ if __name__ == '__main__':
 
     except rospy.ROSInterruptException as e:
         print(e)
-        pass
+
