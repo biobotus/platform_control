@@ -18,11 +18,11 @@ class hmi():
         self.run = 1
 
         # ROS publishments
-        self.pub_pos_x = rospy.Publisher('X_Pos', Float32, queue_size = 10)
-        self.pub_pos_y = rospy.Publisher('Y_Pos', Float32, queue_size = 10)
-        self.pub_vel_x = rospy.Publisher('X_Vel', Float32, queue_size = 10)
-        self.pub_vel_y = rospy.Publisher('Y_Vel', Float32, queue_size = 10)
-        self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size = 10)
+        self.pub_pos_x = rospy.Publisher('X_Pos', Float32, queue_size=10)
+        self.pub_pos_y = rospy.Publisher('Y_Pos', Float32, queue_size=10)
+        self.pub_vel_x = rospy.Publisher('X_Vel', Float32, queue_size=10)
+        self.pub_vel_y = rospy.Publisher('Y_Vel', Float32, queue_size=10)
+        self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size=10)
 
         # ROS init
         self.rate = rospy.Rate(10)  # 10Hz

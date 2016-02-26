@@ -7,8 +7,7 @@ import RPi.GPIO as GPIO
 # Functions
 def soft_move(self):
     """
-    Creates a list of time values to use as PWM to move the platform
-    according to multiple input parameters.
+    Creates a list of time values to use as PWM to move the platform.
     Input:  motor_control node object
     Output: The time array associated to frequencies that form a
             trapeze (ramp up, plateau, ramp down).
@@ -22,7 +21,7 @@ def soft_move(self):
             return None
 
     # Calculate center index
-    center_ind = round(self.nb_pulse/2.)
+    center_ind = round(self.nb_pulse/2)
 
     # Calculate beginning of plateau index
     plat_ind = round(center_ind-round(self.plat_size*self.nb_pulse)/2)
@@ -48,7 +47,7 @@ def soft_move(self):
 
     return dt
 
-def axis_move(self):
+def generate_clock(self):
     """
     Generates a clock signal on the GPIO pins of the motor_control node object.
     """
@@ -57,6 +56,8 @@ def axis_move(self):
 
     GPIO.output(self.enable_pin, GPIO.LOW)
     time.sleep(0.01)
+
+    increment = int((self.direction-0.5)*2)  # 0 or 1 --> -1 or 1
 
     for x in range(self.nb_pulse):
         time_begin = time.clock()
@@ -73,6 +74,9 @@ def axis_move(self):
         while(time.clock() - time_begin < dt[x]):
             # Can be improved with interrupts
             pass
+
+        self.pulse_counter += increment
+
 
     GPIO.output(self.enable_pin, GPIO.HIGH)
 
@@ -100,7 +104,7 @@ def pos_move(self):
         self.nb_pulse += 1
 
     if self.nb_pulse != 0:
-        axis_move(self)
+        generate_clock(self)
 
 
 def vel_move(self):

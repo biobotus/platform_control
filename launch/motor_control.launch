@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="platform_control" type="motor_control_xy.py" name="motor_control_xy" output="screen"/>
+</launch>

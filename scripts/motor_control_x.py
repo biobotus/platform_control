@@ -4,7 +4,7 @@
 import rospy
 import RPi.GPIO as GPIO
 import trajectory
-from std_msgs.msg import Float32, String
+from std_msgs.msg import Float32, Int32, String
 
 # Variables
 node_name = 'motor_control_x'
@@ -34,9 +34,13 @@ class motor_control_x():
         self.subscriber = rospy.Subscriber("X_Vel", Float32, self.callback_vel)
         self.subscriber = rospy.Subscriber("Motor_Kill", String, self.callback_kill)
 
+        # ROS publishments
+        self.pub_fb_x = rospy.Publisher('FB_Pulse_X', Int32, queue_size=10)
+
         # Constants
         self.dist_step = 0.127
         self.mode_step = 0.25  # 4 pulses per step
+        self.pulse = self.dist_step * self.mode_step
 
         # Movement mode
         self.vel_flag = 0
@@ -47,9 +51,10 @@ class motor_control_x():
         self.f_max = 3500
         self.f_min = 500
         self.plat_size = 0.5
-        self.pulse = self.dist_step * self.mode_step
         self.max_slope = 10
+        self.nb_pulse = 0
         self.error_pulse = 0  # Rounding error
+        self.pulse_counter = 0
 
         # Velocity frequency control
         self.vel = 0
@@ -64,6 +69,7 @@ class motor_control_x():
     def callback_pos(self, data):
         self.delta = data.data
         trajectory.pos_move(self)
+        self.pub_fb_x.publish(self.pulse_counter)
 
     # Callback for new velocity
     def callback_vel(self, data):
@@ -73,7 +79,7 @@ class motor_control_x():
     # Callback to kill motor
     def callback_kill(self, data):
         if data.data == node_name:
-            rospy.signal_shutdown(data.data)
+            rospy.signal_shutdown(node_name)
 
     # Listening function
     def listener(self):
