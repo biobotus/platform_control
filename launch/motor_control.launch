@@ -1,4 +1,4 @@
 <launch>
     <node pkg="platform_control" type="motor_control_xy.py" name="motor_control_xy" output="screen"/>
-    <node pkg="platform_control" type="motor_control_z.py" name="motor_control_z" output="screen"/>
+    <!--<node pkg="platform_control" type="motor_control_z.py" name="motor_control_z" output="screen"/>-->
 </launch>

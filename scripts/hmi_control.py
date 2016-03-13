@@ -3,7 +3,7 @@
 # Imports
 from platform_control.msg import IntList
 import rospy
-from std_msgs.msg import Int32, String
+from std_msgs.msg import Bool, String
 
 class HMIControl():
     def __init__(self):
@@ -16,7 +16,7 @@ class HMIControl():
         self.pub_pos_xy = rospy.Publisher('Pulse_XY', IntList, queue_size=10)
         self.pub_pos_z = rospy.Publisher('Pulse_Z', IntList, queue_size=10)
         self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size=10)
-        self.pub_init = rospy.Publisher('Platform_Init', Int32, queue_size=10)
+        self.pub_init = rospy.Publisher('Platform_Init', Bool, queue_size=10)
 
         # Variables
         self.delta_x = 0
@@ -28,13 +28,14 @@ class HMIControl():
     def hmi_control_pos(self):
         self.run = 1
         init = int(raw_input(" Do you want to initialize the platform? \
-                                                    (yes = 1/no = 0)"))
+                                                    (yes = 1/no = 0) "))
 
         if init:
             self.pub_init.publish(1)
             # while not self.init_done:
             #     self.rate.sleep()
 
+        self.run = int(raw_input(" Move manually? (yes = 1/no = 0) "))
 
         while self.run:
             xy_or_z = int(raw_input(" Move XY (1) or Z(0)? "))

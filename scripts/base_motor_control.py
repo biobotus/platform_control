@@ -3,7 +3,8 @@
 # Imports
 import pigpio
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
+import time
 
 class BaseMotorControl():
     """This class defines methods that are used by all MotorControl nodes."""
@@ -16,6 +17,7 @@ class BaseMotorControl():
 
         # ROS subscriptions
         self.subscriber = rospy.Subscriber('Motor_Kill', String, self.callback_kill)
+        self.subscriber = rospy.Subscriber('Platform_Init', Bool, self.callback_init)
 
         # ROS publishments
         self.done_move = rospy.Publisher('Done_Move', String, queue_size=10)
@@ -27,33 +29,42 @@ class BaseMotorControl():
             self.gpio.set_mode(self.enable_pin[A], pigpio.OUTPUT)
             self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
             self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
-            #self.gpio.set_mode(self.limit_sw[A], pigpio.INPUT)
+            self.gpio.set_mode(self.limit_sw[A], pigpio.INPUT)
 
             # GPIO output init
             self.gpio.write(self.enable_pin[A], pigpio.HIGH)
             self.gpio.write(self.clock_pin[A], pigpio.LOW)
             self.gpio.write(self.dir_pin[A], self.direction[A])
 
-        # GPIO input init
-        #self.gpio.set_glitch_filter(self.limit_sw[X], 50)
-        #self.gpio.set_glitch_filter(self.limit_sw[Y], 50)
-        #self.gpio.callback(self.limit_sw[X], pigpio.RISING_EDGE, \
-        #                                   self.callback_limit_sw_x)
-        #self.gpio.callback(self.limit_sw[Y], pigpio.RISING_EDGE, \
-        #                                   self.callback_limit_sw_y)
-
-    # def callback_limit_sw_x(self, gpio, level, tick):
-    #     self.gpio.write(self.enable_pin[X], pigpio.HIGH)
-    #     print("Callback Limit Switch X")
-
-    # def callback_limit_sw_y(self, gpio, level, tick):
-    #     self.gpio.write(self.enable_pin[Y], pigpio.HIGH)
-    #     print("Callback Limit Switch Y")
-
     def callback_kill(self, data):
         if data.data == self.node_name:
             print("Killing {0}".format(self.node_name))
             for A in self.mode:
+                self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+
+    def callback_init(self, data):
+        if data.data:
+            for A in self.mode:
+                sleep_time = 0.125/self.f_min[A]
+
+                # Set direction towards home
+                self.gpio.write(self.dir_pin[A], pigpio.LOW)
+
+                # Enable motion
+                self.gpio.write(self.enable_pin[A], pigpio.LOW)
+
+                # Initialization
+                while not self.gpio.read(self.limit_sw[A]):
+                    self.gpio.write(self.clock_pin[A], pigpio.HIGH)
+                    start_time = time.clock()
+                    while(time.clock() - start_time < sleep_time):
+                        pass
+                    self.gpio.write(self.clock_pin[A], pigpio.LOW)
+                    start_time = time.clock()
+                    while(time.clock() - start_time < sleep_time):
+                        pass
+
+                # Disable motion
                 self.gpio.write(self.enable_pin[A], pigpio.HIGH)
 
     # Listening function

@@ -39,11 +39,6 @@ class MotorControlZ(BaseMotorControl):
 
         self.init_gpio()
 
-        # GPIO input init
-        #self.gpio.set_glitch_filter(self.limit_sw[0], 50)
-        #self.gpio.callback(self.limit_sw, pigpio.RISING_EDGE, \
-        #                               self.callback_limit_sw_z)
-
     # Callback for new position
     def callback_pos(self, data):
         try:
@@ -64,10 +59,6 @@ class MotorControlZ(BaseMotorControl):
 
         trajectory.pos_move(self)
         self.done_move.publish(self.node_name)
-
-    # def callback_limit_sw_z(self, gpio, level, tick):
-    #     self.gpio.write(self.enable_pin[self.mode], pigpio.HIGH)
-    #     print("Callback Limit Switch Z")
 
 
 # Main function
