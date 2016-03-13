@@ -11,4 +11,4 @@ To run :
 - roslaunch platform_control motor_control.launch
 
 [Terminal 2]
-- rosrun platform_control hmi_control_xy.py
+- rosrun platform_control hmi_control.py

@@ -1,159 +1,223 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Imports
-import time
-import RPi.GPIO as GPIO
+import pigpio
+
+# Constants
+X = 0
+Y = 1
+Z0 = 0
+Z1 = 1
+Z2 = 2
 
 # Functions
-def soft_move(self):
-    """
-    Creates a list of time values to use as PWM to move the platform.
-    Input:  motor_control node object
-    Output: The time array associated to frequencies that form a
-            trapeze (ramp up, plateau, ramp down).
-    """
-
-    # Return nothing if any argument is invalid
-    used_params = [self.nb_pulse, self.f_max, self.f_min, self.plat_size, self.max_slope]
-    for param in used_params:
-        if param <= 0:
-            print("Error - soft_move invalid argument : {0} <= 0".format(param))
-            return None
-
-    # Calculate center index
-    center_ind = round(self.nb_pulse/2)
-
-    # Calculate beginning of plateau index
-    plat_ind = round(center_ind-round(self.plat_size*self.nb_pulse)/2)
-
-    # If no ramp, return slowest movement
-    if plat_ind < 1:
-        print("plat_ind < 1")
-        dt = [0.5/self.f_min]*self.nb_pulse
-        return(dt)
-
-    # Calculate frequency slope
-    slope = min((self.f_max-self.f_min)/(plat_ind), self.max_slope)
-
-    # Generate instantaneous frequency points (trapeze)
-    dF = [slope*i+self.f_min for i in range(int(plat_ind)+1)]
-    dF = dF + [dF[-1]]*int(center_ind-plat_ind-1)
-    buf = [dF[-1]] if self.nb_pulse&1 else []  # Account for even/odd number of points
-    dF = dF[:int(center_ind)]
-    dF = dF + buf + dF[::-1]
-
-    # Time of half period
-    dt = [0.5/f for f in dF]
-
-    return dt
-
-def generate_clock(self):
+def pos_move(self):
     """
     Generates a clock signal on the GPIO pins of the motor_control node object.
     """
 
-    dt = soft_move(self)
+    for A in self.mode:
+        # Direction
+        if self.delta[A] < 0:
+            self.direction[A] = 0
+            self.gpio.write(self.dir_pin[A], self.direction[A])
+        else:
+            self.direction[A] = 1
+            self.gpio.write(self.dir_pin[A], self.direction[A])
 
-    GPIO.output(self.enable_pin, GPIO.LOW)
-    time.sleep(0.01)
+        # Movement
+        self.nb_pulse[A] = abs(self.delta[A])
 
-    increment = int((self.direction-0.5)*2)  # 0 or 1 --> -1 or 1
-
-    for x in range(self.nb_pulse):
-        time_begin = time.clock()
-        GPIO.output(self.control_pin, GPIO.HIGH)
-
-        while(time.clock() - time_begin < dt[x]):
-            # Can be improved with interrupts
-            pass
-
-        time_begin = time.clock()
-
-        GPIO.output(self.control_pin, GPIO.LOW)
-
-        while(time.clock() - time_begin < dt[x]):
-            # Can be improved with interrupts
-            pass
-
-        self.pulse_counter += increment
+        # Generate clock
+        if self.nb_pulse[A]:
+            dt = soft_move(self.nb_pulse[A], self.f_max[A], \
+                           self.f_min[A], self.max_slope[A])
+            gen_single_clock(self, A, dt)
 
 
-    GPIO.output(self.enable_pin, GPIO.HIGH)
+def soft_move(nb_pulse, f_max, f_min, max_slope):
+    """
+    Creates a list of time values to use as PWM to move the platform.
+    Input:  Number of pulses and frequency constraints
+    Output: The time array (in microseconds) associated to frequencies
+            that form a trapeze (ramp up, plateau, ramp down).
+    """
 
+    # Return nothing if any argument is invalid
+    if not nb_pulse:
+        return None
 
-def pos_move(self):
-    # Direction
-    if self.delta < 0:
-        self.direction = 0
-        GPIO.output(self.dir_pin, self.direction)
+    try:
+        assert nb_pulse > 0
+        assert f_min > 0
+        assert f_max > f_min
+        assert max_slope > 0
+    except AssertionError:
+        print("soft_move received an invalid argument")
+        return None
+
+    magic = int((f_max-f_min)/max_slope)
+    plat_len = nb_pulse-2*magic
+
+    if plat_len > 0:
+        dF = [i*max_slope+f_min for i in range(magic)]
+        dF = dF + [f_max]*plat_len + dF[::-1]
+
+    elif nb_pulse == 1:
+        dF = [f_min]
+
     else:
-        self.direction = 1
-        GPIO.output(self.dir_pin, self.direction)
+        dF = [i*max_slope+f_min for i in range(nb_pulse/2)]
+        buf = [dF[-1]] if nb_pulse&1 else []
+        dF = dF + buf + dF[::-1]
 
-    # Movement
-    nb_pulse_float = abs(self.delta)/self.pulse
-    self.nb_pulse = int(round(nb_pulse_float))
-    self.error_pulse += nb_pulse_float - self.nb_pulse
+    try:
+        assert len(dF) == nb_pulse
+    except AssertionError:
+        print("Error - frequency trapeze has incorrect length ({0}), \
+                            should be {1}".format(len(dF), nb_pulse))
+        return None
 
-    # Adjust values if error is greater than 1 pulse
-    if self.error_pulse < -1:
-        self.error_pulse += 1
-        self.nb_pulse -= 1
-    elif self.error_pulse > 1:
-        self.error_pulse -= 1
-        self.nb_pulse += 1
-
-    if self.nb_pulse != 0:
-        generate_clock(self)
+    return [int(500000/f) for f in dF]
 
 
-def vel_move(self):
-    self.vel_flag = 0
+def gen_single_clock(self, A, dt):
+    magic = int((self.f_max[A]-self.f_min[A])/self.max_slope[A])
+    plat_len = self.nb_pulse[A]-2*magic
 
-    # Do not move if velocity is 0
-    if self.vel == 0:
-        return
+    self.gpio.wave_clear()
 
-    # Direction
-    if self.vel < 0:
-        self.direction = 0
+    if plat_len > 0:
+        ramp_up = []
+        plateau = []
+        ramp_down = []
+        for t in range(magic):
+            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[t]))
+            ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[t]))
+            ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0,\
+                                          dt[t+magic+plat_len]))
+            ramp_down.append(pigpio.pulse(0, 1<<self.clock_pin[A],\
+                                          dt[t+magic+plat_len]))
+
+        plateau.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[magic]))
+        plateau.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[magic]))
+
+        self.gpio.wave_add_new()
+        self.gpio.wave_add_generic(ramp_up)
+        wave_id1 = self.gpio.wave_create()
+        self.gpio.wave_add_new()
+        self.gpio.wave_add_generic(plateau)
+        wave_id2 = self.gpio.wave_create()
+        self.gpio.wave_add_new()
+        self.gpio.wave_add_generic(ramp_down)
+        wave_id3 = self.gpio.wave_create()
+
+        m = plat_len % 256
+        n = plat_len / 256
+
+        wave_id_list = [wave_id1,       # Transmit wave
+                        255, 0,         # Start loop
+                            wave_id2,   # Transmit wave
+                        255, 1, m, n,   # Loop m + 256*n times
+                        wave_id3]       # Transmit wave
+
     else:
-        self.direction = 1
-    GPIO.output(self.dir_pin, self.direction)
+        half_pulse_1 = []
+        half_pulse_2 = []
 
-    # Movement
-    GPIO.output(self.enable_pin, GPIO.LOW)
-    time.sleep(0.01)
+        for t in dt[:len(dt)/2]:
+            half_pulse_1.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
+            half_pulse_1.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+        for t in dt[len(dt)/2:]:
+            half_pulse_2.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
+            half_pulse_2.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
 
-    # Frequency boundaries
-    self.vel = abs(self.vel)
-    if self.vel < self.f_min:
-        self.vel = self.f_min
-    elif self.vel > self.f_max:
-        self.vel = self.f_max
+        self.gpio.wave_add_new()
+        self.gpio.wave_add_generic(half_pulse_1)
+        wave_id1 = self.gpio.wave_create()
+        self.gpio.wave_add_new()
+        self.gpio.wave_add_generic(half_pulse_2)
+        wave_id2 = self.gpio.wave_create()
+        wave_id_list = [wave_id1, wave_id2]
 
-    # Half period
-    dt = 0.5/self.vel
-    vel_ini = self.vel
+    print("{0} wid : {1}".format(self.node_name, wave_id_list))
 
-    while self.vel == vel_ini:
-        time_begin = time.clock()
-        GPIO.output(self.control_pin, GPIO.HIGH)
+    self.gpio.write(self.enable_pin[A], pigpio.LOW)
+    self.gpio.wave_chain(wave_id_list)
 
-        while(time.clock() - time_begin < dt):
-            # Can be improved with interrupts
-            pass
+    print("STARTING {0}".format(self.node_name))
 
-        time_begin = time.clock()
-        GPIO.output(self.control_pin, GPIO.LOW)
+    while self.gpio.wave_tx_busy():
+        self.rate.sleep()
 
-        while(time.clock() - time_begin < dt):
-            # Can be improved with interrupts
-            pass
+    self.gpio.write(self.enable_pin[A], pigpio.HIGH)
 
-    GPIO.output(self.enable_pin, GPIO.HIGH)
+    self.gpio.wave_delete(wave_id1)
+    self.gpio.wave_delete(wave_id2)
+    if len(wave_id_list) == 3:
+        self.gpio.wave_delete(wave_id3)
+    print("{0} DONE".format(self.node_name))
 
 
-if __name__ == "__main__":
-    pass
+# TODO in Fall 2016
+# def gen_double_clock(self, dt_x, dt_y):
+#     print("gen_double_clock not yet implemented!")
+#     print("Moving X axis, then Y axis...")
+
+#     self.single_axis_mode = X
+#     gen_single_clock(self, dt_x)
+#     self.single_axis_mode = Y
+#     gen_single_clock(self, dt_y)
+
+
+#     if not (N_x and N_y):
+#         print("Movement only in one axis, use single method")
+#         continue
+
+#     dt_x = soft_move(N_x, f_max_x, f_min_x, max_slope_x)
+#     dt_y = soft_move(N_y, f_max_y, f_min_y, max_slope_y)
+
+#     dt2x = [x for pair in zip(dt_x, dt_x) for x in pair]
+#     dt2y = [y for pair in zip(dt_y, dt_y) for y in pair]
+
+#     dt2x_copy = list(dt2x)
+#     dt2y_copy = list(dt2y)
+#     dt2x_copy.append(0)
+#     dt2y_copy.append(0)
+
+#     ind_x, ind_y = 0, 0
+#     last_x, last_y = dt2x[ind_x], dt2y[ind_y]
+#     out = []
+
+#     while ind_y <= len(dt2y)-1 and ind_x <= len(dt2x)-1:
+#         on = ('X' if not ind_x&1 else '') + ('Y' if not ind_y&1 else '')
+#         off = ('X' if ind_x&1 else '') + ('Y' if ind_y&1 else '')
+
+#         if last_x == last_y:
+#             delay = last_x
+#             ind_x += 1
+#             ind_y += 1
+#             last_x = dt2x_copy[ind_x]
+#             last_y = dt2y_copy[ind_y]
+#         elif last_x > last_y:
+#             delay = last_y
+#             last_x -= last_y
+#             ind_y += 1
+#             last_y = dt2y_copy[ind_y]
+#         else:
+#             delay = last_x
+#             last_y -= last_x
+#             ind_x += 1
+#             last_x = dt2x_copy[ind_x]
+#
+#         out.append((on, off, delay))
+
+#     if dt2x[ind_x:]:
+#         left_x = dt2x[ind_x:]
+#         left_x[0] -= delay
+#         for x in left_x:
+#             on = ('X' if not ind_x&1 else '')
+#             off = ('X' if ind_x&1 else '') + 'Y'
+#             out.append((on, off, x))
+#             ind_x += 1
 

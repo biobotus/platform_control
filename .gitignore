@@ -6,8 +6,5 @@
 *.save*
 *.bak
 *.log
+*/old/*
 
-
-# OS generated files
-.DS_STORE
-.catkin_workspace

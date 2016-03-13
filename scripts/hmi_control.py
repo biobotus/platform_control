@@ -1,89 +1,79 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Imports
+from platform_control.msg import IntList
 import rospy
-from std_msgs.msg import Float32, String
+from std_msgs.msg import Int32, String
 
-
-class hmi():
+class HMIControl():
     def __init__(self):
+        # ROS init
+        self.node_name = self.__class__.__name__
+        rospy.init_node(self.node_name, anonymous=True)
+        self.rate = rospy.Rate(10)  # 10Hz
+
+        # ROS publishments
+        self.pub_pos_xy = rospy.Publisher('Pulse_XY', IntList, queue_size=10)
+        self.pub_pos_z = rospy.Publisher('Pulse_Z', IntList, queue_size=10)
+        self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size=10)
+        self.pub_init = rospy.Publisher('Platform_Init', Int32, queue_size=10)
+
+        # Variables
         self.delta_x = 0
         self.delta_y = 0
-
-        self.vel_x = 0
-        self.vel_y = 0
-
         self.pos_x = 0
         self.pos_y = 0
         self.run = 1
 
-        # ROS publishments
-        self.pub_pos_x = rospy.Publisher('X_Pos', Float32, queue_size=10)
-        self.pub_pos_y = rospy.Publisher('Y_Pos', Float32, queue_size=10)
-        self.pub_vel_x = rospy.Publisher('X_Vel', Float32, queue_size=10)
-        self.pub_vel_y = rospy.Publisher('Y_Vel', Float32, queue_size=10)
-        self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size=10)
-
-        # ROS init
-        self.rate = rospy.Rate(10)  # 10Hz
-
     def hmi_control_pos(self):
         self.run = 1
+        init = int(raw_input(" Do you want to initialize the platform? \
+                                                    (yes = 1/no = 0)"))
+
+        if init:
+            self.pub_init.publish(1)
+            # while not self.init_done:
+            #     self.rate.sleep()
+
+
         while self.run:
+            xy_or_z = int(raw_input(" Move XY (1) or Z(0)? "))
+            if xy_or_z:
+                print("\n Position Control Axis X and Y")
+                mm_x = float(raw_input(" Move X (mm) : "))
+                mm_y = float(raw_input(" Move Y (mm) : "))
+                self.delta_x = int(mm_x/(0.127*0.25))
+                self.delta_y = int(mm_y/(0.127*0.25))
 
-            print "\n X Position : %s" %self.pos_x
-            print " Y Position : %s" %self.pos_y
+                msg = IntList()
+                msg.data = [self.delta_x, self.delta_y]
+                print("Publishing {0}".format(msg.data))
+                self.pub_pos_xy.publish(msg)
 
-            print("\n Position control Axis")
+            else:
+                print("\n Position Control Axis Z")
+                ID = int(raw_input(" Move Z0 (0), Z1 (1) or Z2 (2)? "))
+                mm_z = float(raw_input(" Move Z (mm) : "))
+                self.delta_z = int(mm_z/(0.127*0.25))
 
-            self.delta_x = float(raw_input(" Move X (mm) : "))
-            self.delta_y = float(raw_input(" Move Y (mm) : "))
-            self.pos_x = self.pos_x + self.delta_x
-            self.pos_y = self.pos_y + self.delta_y
+                msg = IntList()
+                msg.data = [ID, self.delta_z]
+                print("Publishing {0}".format(msg.data))
+                self.pub_pos_z.publish(msg)
 
-            self.pub_pos_x.publish(self.delta_x)
-            self.pub_pos_y.publish(self.delta_y)
-
-            self.run = int(raw_input(" Do you want to continue? (yes = 1/no = 0)"))
-            self.rate.sleep()
-
-    def hmi_control_vel(self):
-        self.run = 1
-        while self.run:
-            print("\n Velocity  control Axis")
-
-            self.vel_x = int(raw_input(" Vel X (Hz) : "))
-            self.vel_y = int(raw_input(" Vel Y (Hz) : "))
-
-            self.pub_vel_x.publish(self.vel_x)
-            self.pub_vel_y.publish(self.vel_y)
-
-            self.run = int(raw_input(" Do you want to continue? (yes = 1/no = 0)"))
-            self.rate.sleep()
+            self.run = int(raw_input(" Move again? (yes = 1/no = 0)"))
 
 
 if __name__ == '__main__':
-    rospy.init_node('hmi_control')
-
     try:
-        h = hmi()
-        p_v  = raw_input(" Position or velocity control? (1 = pos/0 = vel) ")
+        h = HMIControl()
+        h.hmi_control_pos()
 
-        if p_v == '1':
-            h.hmi_control_pos()
-        else:
-            h.hmi_control_vel()
-
-    except rospy.ROSInterruptException as e:
-        print(e)
-
-    except ValueError as e:
+    except (rospy.ROSInterruptException, EOFError) as e:
         print(e)
 
     finally:
         # Kill motors
-        h.pub_vel_x.publish(0)
-        h.pub_vel_y.publish(0)
-        h.pub_kill.publish("motor_control_x")
-        h.pub_kill.publish("motor_control_y")
+        h.pub_kill.publish("MotorControlXY")
+        h.pub_kill.publish("MotorControlZ")
 
