@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # Imports
+from base_motor_control import BaseMotorControl
 import pigpio
 from platform_control.msg import IntList
 import rospy
@@ -8,23 +9,15 @@ from std_msgs.msg import String
 import trajectory
 from trajectory import X, Y
 
-class MotorControlXY():
+class MotorControlXY(BaseMotorControl):
     """Multiple attributes are lists of two elements --> [X, Y]"""
 
     def __init__(self):
-        # ROS init
-        self.node_name = self.__class__.__name__
-        rospy.init_node(self.node_name, anonymous=True)
-        self.rate = rospy.Rate(10)  # 10Hz
+        BaseMotorControl.__init__(self)
 
         # ROS subscriptions
         # Expected format of Pulse_XY is [int_x, int_y]
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
-        self.subscriber = rospy.Subscriber('Motor_Kill', String, self.callback_kill)
-
-        # ROS publishments
-        self.done_move = rospy.Publisher('Done_Move', String, queue_size=10)
-        self.error = rospy.Publisher('Error', String, queue_size=10)
 
         # Frequency trapeze constants
         self.f_max = [8000, 14000]  #default [10000, 14000]
@@ -43,18 +36,7 @@ class MotorControlXY():
         self.dir_pin = [18, 16]     # pins 12 and 36
         # self.limit_sw = [24, 23]    # pins 18 and 16
 
-        # Init GPIO
-        self.gpio = pigpio.pi()
-        for A in self.mode:
-            self.gpio.set_mode(self.enable_pin[A], pigpio.OUTPUT)
-            self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
-            self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
-            #self.gpio.set_mode(self.limit_sw[A], pigpio.INPUT)
-
-            # GPIO output init
-            self.gpio.write(self.enable_pin[A], pigpio.HIGH)
-            self.gpio.write(self.clock_pin[A], pigpio.LOW)
-            self.gpio.write(self.dir_pin[A], self.direction[A])
+        self.init_gpio()
 
         # GPIO input init
         #self.gpio.set_glitch_filter(self.limit_sw[X], 50)
@@ -90,16 +72,6 @@ class MotorControlXY():
     # def callback_limit_sw_y(self, gpio, level, tick):
     #     self.gpio.write(self.enable_pin[Y], pigpio.HIGH)
     #     print("Callback Limit Switch Y")
-
-    def callback_kill(self, data):
-        if data.data == self.node_name:
-            print("Killing {0}".format(self.node_name))
-            self.gpio.write(self.enable_pin[X], pigpio.HIGH)
-            self.gpio.write(self.enable_pin[Y], pigpio.HIGH)
-
-    # Listening function
-    def listener(self):
-        rospy.spin()
 
 
 # Main function

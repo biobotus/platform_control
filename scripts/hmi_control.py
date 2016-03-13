@@ -54,7 +54,7 @@ class HMIControl():
                 print("\n Position Control Axis Z")
                 ID = int(raw_input(" Move Z0 (0), Z1 (1) or Z2 (2)? "))
                 mm_z = float(raw_input(" Move Z (mm) : "))
-                self.delta_z = int(mm_z/(0.127*0.25))
+                self.delta_z = int(mm_z/(0.127*0.25))  # TODO use good values
 
                 msg = IntList()
                 msg.data = [ID, self.delta_z]
