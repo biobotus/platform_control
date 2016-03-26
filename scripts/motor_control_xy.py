@@ -20,21 +20,23 @@ class MotorControlXY(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max = [10000, 14000]
-        self.f_min = [500, 500]
-        self.max_slope = [5, 5]
+        self.f_max      = [10000, 14000]
+        self.f_min      = [500,   500  ]
+        self.max_slope  = [5,     5    ]
 
         # Position control
-        self.mode = [X, Y]
-        self.delta = [0, 0]
-        self.direction = [0, 0]
-        self.nb_pulse = [0, 0]
+        self.mode       = [X, Y]
+        self.sync       = [1, 0]        # Axes X has 2 motors that has to be synced
+        self.delta      = [0, 0]
+        self.direction  = [0, 0]
+        self.nb_pulse   = [0, 0]
 
         # GPIO pins
-        self.enable_pin = [15, 20]  # pins 10 and 38
-        self.clock_pin = [14, 21]   # pins 8 and 40
-        self.dir_pin = [18, 16]     # pins 12 and 36
-        self.limit_sw = [24, 23]    # pins 18 and 16
+        self.enable_pin     = [[13, 6], 16]  # pins 33, 31 and 36
+        self.clock_pin      = [  26,    21]  # pins 37     and 40
+        self.dir_pin        = [  19,    20]  # pins 35     and 38
+        self.limit_sw_init  = [[2, 3],  27]  # pins 3,  5  and 13
+        self.limit_sw_end   = [[4, 17], 22]  # pins 7,  11 and 15 
 
         self.init_gpio()
 

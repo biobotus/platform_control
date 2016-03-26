@@ -19,10 +19,10 @@ def pos_move(self):
     for A in self.mode:
         # Direction
         if self.delta[A] < 0:
-            self.direction[A] = 0
+            self.direction[A] = 0   # Counter Clock-wise
             self.gpio.write(self.dir_pin[A], self.direction[A])
         else:
-            self.direction[A] = 1
+            self.direction[A] = 1   # Clockwise
             self.gpio.write(self.dir_pin[A], self.direction[A])
 
         # Movement
@@ -142,7 +142,13 @@ def gen_single_clock(self, A, dt):
 
     print("{0} wid : {1}".format(self.node_name, wave_id_list))
 
-    self.gpio.write(self.enable_pin[A], pigpio.LOW)
+    if self.sync[A]:
+        for B in range(len(self.enable_pin[A])):
+            self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
+    else:
+        self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+
+
     self.gpio.wave_chain(wave_id_list)
 
     print("STARTING {0}".format(self.node_name))
@@ -150,7 +156,11 @@ def gen_single_clock(self, A, dt):
     while self.gpio.wave_tx_busy():
         self.rate.sleep()
 
-    self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+    if self.sync[A]:
+        for B in range(len(self.enable_pin[A])):
+            self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
+    else:
+        self.gpio.write(self.enable_pin[A], pigpio.LOW)
 
     self.gpio.wave_delete(wave_id1)
     self.gpio.wave_delete(wave_id2)

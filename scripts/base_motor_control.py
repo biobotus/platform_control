@@ -26,21 +26,40 @@ class BaseMotorControl():
     def init_gpio(self):
         self.gpio = pigpio.pi()
         for A in self.mode:
-            self.gpio.set_mode(self.enable_pin[A], pigpio.OUTPUT)
-            self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
-            self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
-            self.gpio.set_mode(self.limit_sw[A], pigpio.INPUT)
 
-            # GPIO output init
-            self.gpio.write(self.enable_pin[A], pigpio.HIGH)
-            self.gpio.write(self.clock_pin[A], pigpio.LOW)
-            self.gpio.write(self.dir_pin[A], self.direction[A])
+            if self.sync[A]:
+                for B in range(len(self.enable_pin[A])):
+                    self.gpio.set_mode(self.enable_pin[A][B],    pigpio.OUTPUT)
+                    self.gpio.set_mode(self.limit_sw_init[A][B], pigpio.INPUT)            
+                    self.gpio.set_mode(self.limit_sw_end[A][B],  pigpio.INPUT)
+
+                    # GPIO output init
+                    self.gpio.write(self.enable_pin[A][B], pigpio.LOW) 
+               
+                self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
+                self.gpio.set_mode(self.dir_pin[A],   pigpio.OUTPUT)
+                
+                # GPIO output init
+                self.gpio.write(self.clock_pin[A], pigpio.LOW)
+                self.gpio.write(self.dir_pin[A], self.direction[A])
+
+            else:
+                self.gpio.set_mode(self.enable_pin[A], pigpio.OUTPUT)
+                self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
+                self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
+                self.gpio.set_mode(self.limit_sw_init[A], pigpio.INPUT)
+                self.gpio.set_mode(self.limit_sw_end[A], pigpio.INPUT)
+
+                # GPIO output init
+                self.gpio.write(self.enable_pin[A], pigpio.LOW)
+                self.gpio.write(self.clock_pin[A], pigpio.LOW)
+                self.gpio.write(self.dir_pin[A], self.direction[A])
 
     def callback_kill(self, data):
         if data.data == self.node_name:
             print("Killing {0}".format(self.node_name))
             for A in self.mode:
-                self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+                self.gpio.write(self.enable_pin[A], pigpio.LOW)
 
     def callback_init(self, data):
         if data.data:
@@ -51,7 +70,7 @@ class BaseMotorControl():
                 self.gpio.write(self.dir_pin[A], pigpio.LOW)
 
                 # Enable motion
-                self.gpio.write(self.enable_pin[A], pigpio.LOW)
+                self.gpio.write(self.enable_pin[A], pigpio.HIGH)
 
                 # Initialization
                 while not self.gpio.read(self.limit_sw[A]):
@@ -65,7 +84,7 @@ class BaseMotorControl():
                         pass
 
                 # Disable motion
-                self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+                self.gpio.write(self.enable_pin[A], pigpio.LOW)
 
     # Listening function
     def listener(self):
