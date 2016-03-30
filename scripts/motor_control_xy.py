@@ -26,17 +26,17 @@ class MotorControlXY(BaseMotorControl):
 
         # Position control
         self.mode       = [X, Y]
-        self.sync       = [1, 0]        # Axes X has 2 motors that has to be synced
+        self.sync       = [2, 0] # Axis X has 2 motors that have to be synced
         self.delta      = [0, 0]
         self.direction  = [0, 0]
         self.nb_pulse   = [0, 0]
 
         # GPIO pins
-        self.enable_pin     = [[13, 6], 16]  # pins 33, 31 and 36
-        self.clock_pin      = [  26,    21]  # pins 37     and 40
-        self.dir_pin        = [  19,    20]  # pins 35     and 38
-        self.limit_sw_init  = [[2, 3],  27]  # pins 3,  5  and 13
-        self.limit_sw_end   = [[4, 17], 22]  # pins 7,  11 and 15 
+        self.enable_pin     = [[6,  5],  16]  # pins 33, 31 and 36
+        self.clock_pin      = [26,       21]  # pins 37     and 40
+        self.dir_pin        = [[19, 13], 20]  # pins 35     and 38
+        self.limit_sw_init  = [[2,  3],   4]  # 
+        self.limit_sw_end   = [[7,  8],   9]  # pins 7,  11 and 15 
 
         self.init_gpio()
 
@@ -44,6 +44,7 @@ class MotorControlXY(BaseMotorControl):
     def callback_pos(self, data):
         try:
             self.delta = data.data
+            print(self.delta)
             assert len(self.delta) == 2
             assert type(self.delta[X]) == int
             assert type(self.delta[Y]) == int
@@ -56,6 +57,7 @@ class MotorControlXY(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
+        print(self.delta)
         trajectory.pos_move(self)
         self.done_move.publish(self.node_name)
 

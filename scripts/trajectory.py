@@ -9,6 +9,8 @@ Y = 1
 Z0 = 0
 Z1 = 1
 Z2 = 2
+SP = 0
+MP = 0
 
 # Functions
 def pos_move(self):
@@ -17,13 +19,24 @@ def pos_move(self):
     """
 
     for A in self.mode:
+
         # Direction
         if self.delta[A] < 0:
             self.direction[A] = 0   # Counter Clock-wise
-            self.gpio.write(self.dir_pin[A], self.direction[A])
+            if self.sync[A]:
+                for B in range(self.sync[A]):
+                    self.gpio.write(self.dir_pin[A][B], self.direction[A])
+            else:
+                self.gpio.write(self.dir_pin[A], self.direction[A])
+
         else:
             self.direction[A] = 1   # Clockwise
-            self.gpio.write(self.dir_pin[A], self.direction[A])
+            if self.sync[A]:
+                for B in range(self.sync[A]):
+                    self.gpio.write(self.dir_pin[A][B], self.direction[A])
+            else:
+                self.gpio.write(self.dir_pin[A], self.direction[A])
+
 
         # Movement
         self.nb_pulse[A] = abs(self.delta[A])
@@ -32,7 +45,8 @@ def pos_move(self):
         if self.nb_pulse[A]:
             dt = soft_move(self.nb_pulse[A], self.f_max[A], \
                            self.f_min[A], self.max_slope[A])
-            gen_single_clock(self, A, dt)
+            if dt:
+                gen_single_clock(self, A, dt)
 
 
 def soft_move(nb_pulse, f_max, f_min, max_slope):
@@ -50,11 +64,11 @@ def soft_move(nb_pulse, f_max, f_min, max_slope):
     try:
         assert nb_pulse > 0
         assert f_min > 0
-        assert f_max > f_min
+        assert f_max >= f_min
         assert max_slope > 0
     except AssertionError:
         print("soft_move received an invalid argument")
-        return None
+        return []
 
     magic = int((f_max-f_min)/max_slope)
     plat_len = nb_pulse-2*magic
@@ -87,10 +101,15 @@ def gen_single_clock(self, A, dt):
 
     self.gpio.wave_clear()
 
+    wave_id1 = None
+    wave_id2 = None
+    wave_id3 = None
+    ramp_up = []
+    plateau = []
+    ramp_down = []
+
     if plat_len > 0:
-        ramp_up = []
-        plateau = []
-        ramp_down = []
+        print("nb values in DMA: {0}".format(2*magic+2))
         for t in range(magic):
             ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[t]))
             ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[t]))
@@ -102,52 +121,74 @@ def gen_single_clock(self, A, dt):
         plateau.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[magic]))
         plateau.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[magic]))
 
-        self.gpio.wave_add_new()
-        self.gpio.wave_add_generic(ramp_up)
-        wave_id1 = self.gpio.wave_create()
-        self.gpio.wave_add_new()
-        self.gpio.wave_add_generic(plateau)
-        wave_id2 = self.gpio.wave_create()
-        self.gpio.wave_add_new()
-        self.gpio.wave_add_generic(ramp_down)
-        wave_id3 = self.gpio.wave_create()
 
-        m = plat_len % 256
-        n = plat_len / 256
+        if magic != 0:
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(ramp_up)
+            wave_id1 = self.gpio.wave_create()
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(plateau)
+            wave_id2 = self.gpio.wave_create()
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(ramp_down)
+            wave_id3 = self.gpio.wave_create()
 
-        wave_id_list = [wave_id1,       # Transmit wave
-                        255, 0,         # Start loop
-                            wave_id2,   # Transmit wave
-                        255, 1, m, n,   # Loop m + 256*n times
-                        wave_id3]       # Transmit wave
+            m = plat_len % 256
+            n = plat_len / 256
+
+            wave_id_list = [wave_id1,       # Transmit wave
+                            255, 0,         # Start loop
+                                wave_id2,   # Transmit wave
+                            255, 1, m, n,   # Loop m + 256*n times
+                            wave_id3]       # Transmit wave
+
+        else:
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(plateau)
+            wave_id1 = self.gpio.wave_create()
+
+            m = plat_len % 256
+            n = plat_len / 256
+
+            wave_id_list = [255, 0,         # Start loop
+                            wave_id1,       # Transmit wave
+                            255, 1, m, n]   # Loop m + 256*n times
 
     else:
-        half_pulse_1 = []
-        half_pulse_2 = []
+        if len(dt) == 1:
 
-        for t in dt[:len(dt)/2]:
-            half_pulse_1.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
-            half_pulse_1.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
-        for t in dt[len(dt)/2:]:
-            half_pulse_2.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
-            half_pulse_2.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[0]))
+            ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[0]))
 
-        self.gpio.wave_add_new()
-        self.gpio.wave_add_generic(half_pulse_1)
-        wave_id1 = self.gpio.wave_create()
-        self.gpio.wave_add_new()
-        self.gpio.wave_add_generic(half_pulse_2)
-        wave_id2 = self.gpio.wave_create()
-        wave_id_list = [wave_id1, wave_id2]
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(ramp_up)
+            wave_id1 = self.gpio.wave_create()
+
+            wave_id_list = [wave_id1]
+
+        else:
+            for t in dt[:len(dt)/2]:
+                ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
+                ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+            for t in dt[len(dt)/2:]:
+                ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
+                ramp_down.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(ramp_up)
+            wave_id1 = self.gpio.wave_create()
+            self.gpio.wave_add_new()
+            self.gpio.wave_add_generic(ramp_down)
+            wave_id2 = self.gpio.wave_create()
+            wave_id_list = [wave_id1, wave_id2]
 
     print("{0} wid : {1}".format(self.node_name, wave_id_list))
 
     if self.sync[A]:
-        for B in range(len(self.enable_pin[A])):
+        for B in range(self.sync[A]):
             self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
     else:
         self.gpio.write(self.enable_pin[A], pigpio.HIGH)
-
 
     self.gpio.wave_chain(wave_id_list)
 
@@ -157,15 +198,21 @@ def gen_single_clock(self, A, dt):
         self.rate.sleep()
 
     if self.sync[A]:
-        for B in range(len(self.enable_pin[A])):
+        for B in range(self.sync[A]):
             self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
     else:
         self.gpio.write(self.enable_pin[A], pigpio.LOW)
 
-    self.gpio.wave_delete(wave_id1)
-    self.gpio.wave_delete(wave_id2)
-    if len(wave_id_list) == 3:
+    # Delete existing wave IDs
+    if wave_id1 is not None:
+        self.gpio.wave_delete(wave_id1)
+
+    if wave_id2 is not None:
+        self.gpio.wave_delete(wave_id2)
+
+    if wave_id3 is not None:
         self.gpio.wave_delete(wave_id3)
+
     print("{0} DONE".format(self.node_name))
 
 

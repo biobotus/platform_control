@@ -25,17 +25,18 @@ class MotorControlZ(BaseMotorControl):
         self.max_slope = [5, 5, 5]
 
         # Position control
-        self.mode = []  # Used for Z0, Z1 and Z2
-        self.modes = [Z0, Z1, Z2]
-        self.delta = [0, 0, 0]
-        self.direction = [0, 0, 0]
-        self.nb_pulse = [0, 0, 0]
+        self.mode      = []  # Used for Z0, Z1 and Z2
+        self.modes     = [Z0, Z1, Z2]
+        self.sync      = [0,  0,  0]
+        self.delta     = [0,  0,  0]
+        self.direction = [0,  0,  0]
+        self.nb_pulse  = [0,  0,  0]
 
         # GPIO pins
         self.enable_pin = [2, 2, 2]  # pins TODO
-        self.clock_pin = [2, 2, 2]  # pin TODO
-        self.dir_pin = [2, 2, 2]  # pin TODO
-        # self.limit_sw = [0, 0, 0]  # pin TODO
+        self.clock_pin  = [2, 2, 2]  # pins TODO
+        self.dir_pin    = [2, 2, 2]  # pins TODO
+        # self.limit_sw = [0, 0, 0]  # pins TODO
 
         self.init_gpio()
 
