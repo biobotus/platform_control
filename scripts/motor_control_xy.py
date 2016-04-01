@@ -20,23 +20,23 @@ class MotorControlXY(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max      = [10000, 14000]
-        self.f_min      = [500,   500  ]
-        self.max_slope  = [5,     5    ]
+        self.f_max     = [10000, 14000]
+        self.f_min     = [500,   500  ]
+        self.max_slope = [5,     5    ]
 
         # Position control
         self.mode       = [X, Y]
-        self.sync       = [2, 0] # Axis X has 2 motors that have to be synced
+        self.modes      = [X, Y]
+        self.sync       = [2, 1] # Axis X has 2 motors that have to be synced
         self.delta      = [0, 0]
         self.direction  = [0, 0]
         self.nb_pulse   = [0, 0]
 
         # GPIO pins
-        self.enable_pin     = [[6,  5],  16]  # pins 33, 31 and 36
-        self.clock_pin      = [26,       21]  # pins 37     and 40
-        self.dir_pin        = [[19, 13], 20]  # pins 35     and 38
-        self.limit_sw_init  = [[2,  3],   4]  # 
-        self.limit_sw_end   = [[7,  8],   9]  # pins 7,  11 and 15 
+        self.enable_pin = [[14, 15], [11]]  # pins [8,  10] and [23]
+        self.limit_sw   = [[23, 24], [12]]  # pins [16, 18] and [32]
+        self.clock_pin  = [ 5      ,  10 ]  # pins  29      and 19
+        self.dir_pin    = [ 6      ,  9  ]  # pins  31      and 21
 
         self.init_gpio()
 
@@ -44,7 +44,6 @@ class MotorControlXY(BaseMotorControl):
     def callback_pos(self, data):
         try:
             self.delta = data.data
-            print(self.delta)
             assert len(self.delta) == 2
             assert type(self.delta[X]) == int
             assert type(self.delta[Y]) == int
@@ -57,7 +56,6 @@ class MotorControlXY(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        print(self.delta)
         trajectory.pos_move(self)
         self.done_move.publish(self.node_name)
 

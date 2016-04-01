@@ -14,27 +14,31 @@ class MotorControlSP(BaseMotorControl):
         BaseMotorControl.__init__(self)
 
         # ROS subscriptions
-        # Expected format of Pulse_SP is [int_sp]
+        # Expected format of Pulse_SP is int_sp
         self.subscriber = rospy.Subscriber('Pulse_SP', Int32, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max      = [20000]
-        self.f_min      = [20000]
+        self.f_max      = [0]
+        self.f_min      = [0]
+        self.f_max_up   = [20000]
+        self.f_min_up   = [20000]
+        self.f_max_down = [5000]
+        self.f_min_down = [5000]
         self.max_slope  = [10]
 
         # Position control
         self.mode       = [SP]
-        self.sync       = [0]
+        self.modes      = [SP]
+        self.sync       = [1]
         self.delta      = [0]
         self.direction  = [0]
         self.nb_pulse   = [0]
 
         # GPIO pins
-        self.enable_pin     = [13]  # pin 33
-        self.clock_pin      = [26]  # pin 37
-        self.dir_pin        = [19]  # pin 35
-        self.limit_sw_init  = [2]   # pin 3
-        self.limit_sw_end   = [4]   # pin 7
+        self.enable_pin = [[22]]  # pin 15
+        self.limit_sw   = [[20]]  # pin 38
+        self.clock_pin  = [ 17 ]  # pin 11
+        self.dir_pin    = [ 27 ]  # pin 13
 
         self.init_gpio()
 
@@ -44,6 +48,13 @@ class MotorControlSP(BaseMotorControl):
             self.delta[SP] = data.data
             assert type(self.delta[SP]) == int
             assert abs(self.delta[SP]) < 65536
+
+            if self.delta[SP] < 0:
+                self.f_max = self.f_max_up
+                self.f_min = self.f_min_up
+            else:
+                self.f_max = self.f_max_down
+                self.f_min = self.f_min_down
 
         except (SyntaxError, AssertionError) as e:
             msg = 'Invalid pulse number received for SP: {0}'.format(e)

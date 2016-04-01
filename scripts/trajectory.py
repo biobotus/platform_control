@@ -19,24 +19,9 @@ def pos_move(self):
     """
 
     for A in self.mode:
-
-        # Direction
-        if self.delta[A] < 0:
-            self.direction[A] = 0   # Counter Clock-wise
-            if self.sync[A]:
-                for B in range(self.sync[A]):
-                    self.gpio.write(self.dir_pin[A][B], self.direction[A])
-            else:
-                self.gpio.write(self.dir_pin[A], self.direction[A])
-
-        else:
-            self.direction[A] = 1   # Clockwise
-            if self.sync[A]:
-                for B in range(self.sync[A]):
-                    self.gpio.write(self.dir_pin[A][B], self.direction[A])
-            else:
-                self.gpio.write(self.dir_pin[A], self.direction[A])
-
+        # Direction : 0 for counter clockwise / 1 for clockwise
+        self.direction[A] = 0 if self.delta[A] < 0 else 1
+        self.gpio.write(self.dir_pin[A], self.direction[A])
 
         # Movement
         self.nb_pulse[A] = abs(self.delta[A])
@@ -109,7 +94,6 @@ def gen_single_clock(self, A, dt):
     ramp_down = []
 
     if plat_len > 0:
-        print("nb values in DMA: {0}".format(2*magic+2))
         for t in range(magic):
             ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[t]))
             ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[t]))
@@ -184,11 +168,8 @@ def gen_single_clock(self, A, dt):
 
     print("{0} wid : {1}".format(self.node_name, wave_id_list))
 
-    if self.sync[A]:
-        for B in range(self.sync[A]):
-            self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
-    else:
-        self.gpio.write(self.enable_pin[A], pigpio.HIGH)
+    for B in range(self.sync[A]):
+        self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
 
     self.gpio.wave_chain(wave_id_list)
 
@@ -197,11 +178,8 @@ def gen_single_clock(self, A, dt):
     while self.gpio.wave_tx_busy():
         self.rate.sleep()
 
-    if self.sync[A]:
-        for B in range(self.sync[A]):
-            self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
-    else:
-        self.gpio.write(self.enable_pin[A], pigpio.LOW)
+    for B in range(self.sync[A]):
+        self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
 
     # Delete existing wave IDs
     if wave_id1 is not None:

@@ -20,23 +20,23 @@ class MotorControlZ(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_Z', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max = [6000, 6000, 6000]
-        self.f_min = [500, 500, 500]
-        self.max_slope = [5, 5, 5]
+        self.f_max     = [6000, 6000, 6000]
+        self.f_min     = [500,  500,  500 ]
+        self.max_slope = [5,    5,    5   ]
 
         # Position control
         self.mode      = []  # Used for Z0, Z1 and Z2
         self.modes     = [Z0, Z1, Z2]
-        self.sync      = [0,  0,  0]
-        self.delta     = [0,  0,  0]
-        self.direction = [0,  0,  0]
-        self.nb_pulse  = [0,  0,  0]
+        self.sync      = [1,  1,  1 ]
+        self.delta     = [0,  0,  0 ]
+        self.direction = [0,  0,  0 ]
+        self.nb_pulse  = [0,  0,  0 ]
 
         # GPIO pins
-        self.enable_pin = [2, 2, 2]  # pins TODO
-        self.clock_pin  = [2, 2, 2]  # pins TODO
-        self.dir_pin    = [2, 2, 2]  # pins TODO
-        # self.limit_sw = [0, 0, 0]  # pins TODO
+        self.enable_pin = [[26], [7 ], [22]]  # pins [37], [26] and [15]
+        self.limit_sw   = [[16], [20], [21]]  # pins [36], [38] and [40]
+        self.clock_pin  = [ 13 ,  25 ,  17 ]  # pins  33 ,  22  and  11
+        self.dir_pin    = [ 19 ,  8  ,  27 ]  # pins  35 ,  24  and  13
 
         self.init_gpio()
 
