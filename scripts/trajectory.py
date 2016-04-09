@@ -19,8 +19,8 @@ def pos_move(self):
     """
 
     for A in self.mode:
-        # Direction : 0 for counter clockwise / 1 for clockwise
-        self.direction[A] = 0 if self.delta[A] < 0 else 1
+        # Direction : 1 for counter clockwise / 0 for clockwise
+        self.direction[A] = 1 if self.delta[A] < 0 else 0
         self.gpio.write(self.dir_pin[A], self.direction[A])
 
         # Movement
@@ -143,6 +143,7 @@ def gen_single_clock(self, A, dt):
 
             ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[0]))
             ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[0]))
+
 
             self.gpio.wave_add_new()
             self.gpio.wave_add_generic(ramp_up)

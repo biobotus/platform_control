@@ -5,6 +5,7 @@ from base_motor_control import BaseMotorControl
 import pigpio
 import rospy
 from std_msgs.msg import Int32
+from platform_control.msg import IntList
 import trajectory
 from trajectory import MP
 
@@ -18,8 +19,8 @@ class MotorControlMP(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_MP', Int32, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max      = [20000]
-        self.f_min      = [20000]
+        self.f_max      = [0]
+        self.f_min      = [0]
         self.max_slope  = [10]
 
         # Position control
@@ -41,9 +42,14 @@ class MotorControlMP(BaseMotorControl):
     # Callback for new position
     def callback_pos(self, data):
         try:
-            self.delta[MP] = data.data
-            assert type(self.delta[MP]) == int
-            assert abs(self.delta[MP]) < 65536
+            assert len(data.data) == 2
+            assert type(self.delta[MP][0]) == int
+            assert type(self.delta[MP][0]) == int
+            assert abs(self.delta[MP][1]) < 65536
+            assert abs(self.delta[MP][1]) < 65536
+            self.delta[MP] = data.data[1]
+            self.f_max = [data.data[0]]
+            self.f_min = [data.data[0]]
 
         except (SyntaxError, AssertionError) as e:
             msg = 'Invalid pulse number received for MP: {0}'.format(e)
@@ -51,8 +57,12 @@ class MotorControlMP(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        trajectory.pos_move(self)
-        self.done_move.publish(self.node_name)
+        print("{0} freq : {1}".format(self.node_name, self.f_max))
+        print("{0} delta : {1}.".format(self.node_name, self.delta[SP]))
+
+        if self.delta[MP]:
+            trajectory.pos_move(self)
+            self.done_move.publish(self.node_name)
 
 
 # Main function

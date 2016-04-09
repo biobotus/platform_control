@@ -3,7 +3,7 @@
 # Imports
 from platform_control.msg import IntList
 import rospy
-from std_msgs.msg import Bool, String
+from std_msgs.msg import String
 
 class HMIControl():
     def __init__(self):
@@ -16,7 +16,7 @@ class HMIControl():
         self.pub_pos_xy = rospy.Publisher('Pulse_XY', IntList, queue_size=10)
         self.pub_pos_z = rospy.Publisher('Pulse_Z', IntList, queue_size=10)
         self.pub_kill = rospy.Publisher('Motor_Kill', String, queue_size=10)
-        self.pub_init = rospy.Publisher('Platform_Init', Bool, queue_size=10)
+        self.pub_init = rospy.Publisher('Platform_Init', String, queue_size=10)
 
         # Variables
         self.delta_x = 0
@@ -24,6 +24,7 @@ class HMIControl():
         self.pos_x = 0
         self.pos_y = 0
         self.run = 1
+        self.motor_list = ['MotorControlXY', 'MotorControlZ']
 
     def hmi_control_pos(self):
         self.run = 1
@@ -31,7 +32,9 @@ class HMIControl():
                                                     (yes = 1/no = 0) "))
 
         if init:
-            self.pub_init.publish(1)
+            for motor in self.motor_list:
+                self.pub_init.publish(motor)
+                self.rate.sleep()
             # while not self.init_done:
             #     self.rate.sleep()
 
@@ -55,7 +58,7 @@ class HMIControl():
                 print("\n Position Control Axis Z")
                 ID = int(raw_input(" Move Z0 (0), Z1 (1) or Z2 (2)? "))
                 mm_z = float(raw_input(" Move Z (mm) : "))
-                self.delta_z = int(mm_z/(0.127*0.25))  # TODO use good values
+                self.delta_z = int(mm_z/(0.04*0.25))
 
                 msg = IntList()
                 msg.data = [ID, self.delta_z]

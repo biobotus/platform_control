@@ -3,6 +3,7 @@
 # Imports
 from base_motor_control import BaseMotorControl
 import pigpio
+from platform_control.msg import IntList
 import rospy
 from std_msgs.msg import Int32
 import trajectory
@@ -15,15 +16,11 @@ class MotorControlSP(BaseMotorControl):
 
         # ROS subscriptions
         # Expected format of Pulse_SP is int_sp
-        self.subscriber = rospy.Subscriber('Pulse_SP', Int32, self.callback_pos)
+        self.subscriber = rospy.Subscriber('Pulse_SP', IntList, self.callback_pos)
 
         # Frequency trapeze constants
         self.f_max      = [0]
         self.f_min      = [0]
-        self.f_max_up   = [20000]
-        self.f_min_up   = [20000]
-        self.f_max_down = [5000]
-        self.f_min_down = [5000]
         self.max_slope  = [10]
 
         # Position control
@@ -45,16 +42,14 @@ class MotorControlSP(BaseMotorControl):
     # Callback for new position
     def callback_pos(self, data):
         try:
-            self.delta[SP] = data.data
-            assert type(self.delta[SP]) == int
-            assert abs(self.delta[SP]) < 65536
-
-            if self.delta[SP] < 0:
-                self.f_max = self.f_max_up
-                self.f_min = self.f_min_up
-            else:
-                self.f_max = self.f_max_down
-                self.f_min = self.f_min_down
+            assert len(data.data) == 2
+            assert type(self.delta[SP][0]) == int
+            assert type(self.delta[SP][0]) == int
+            assert abs(self.delta[SP][1]) < 65536
+            assert abs(self.delta[SP][1]) < 65536
+            self.delta[SP] = data.data[1]
+            self.f_max = [data.data[0]]
+            self.f_min = [data.data[0]]
 
         except (SyntaxError, AssertionError) as e:
             msg = 'Invalid pulse number received for SP: {0}'.format(e)
@@ -62,8 +57,12 @@ class MotorControlSP(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        trajectory.pos_move(self)
-        self.done_move.publish(self.node_name)
+        print("{0} freq : {1}".format(self.node_name, self.f_max))
+        print("{0} delta : {1}.".format(self.node_name, self.delta[SP]))
+
+        if self.delta[SP]:
+            trajectory.pos_move(self)
+            self.done_move.publish(self.node_name)
 
 
 # Main function

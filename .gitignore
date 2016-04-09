@@ -7,4 +7,5 @@
 *.bak
 *.log
 */old/*
+*.swp
 

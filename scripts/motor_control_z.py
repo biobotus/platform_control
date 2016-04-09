@@ -20,12 +20,12 @@ class MotorControlZ(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_Z', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [6000, 6000, 6000]
-        self.f_min     = [500,  500,  500 ]
-        self.max_slope = [5,    5,    5   ]
+        self.f_max     = [5000, 6000, 6000]  # Tested and works at 15 KHz
+        self.f_min     = [500  ,  500, 500 ]
+        self.max_slope = [10   ,    5, 5   ]
 
         # Position control
-        self.mode      = []  # Used for Z0, Z1 and Z2
+        self.mode      = [Z0, Z1, Z2]  # Used for Z0, Z1 and Z2
         self.modes     = [Z0, Z1, Z2]
         self.sync      = [1,  1,  1 ]
         self.delta     = [0,  0,  0 ]
@@ -45,10 +45,10 @@ class MotorControlZ(BaseMotorControl):
         try:
             assert len(data.data) == 2
             mode, delta = data.data
+            delta *= -1
             assert mode in self.modes
             assert type(delta) == int
             assert abs(delta) < 65536
-            assert delta != 0
             self.mode = [mode]
             self.delta[mode] = delta
 
@@ -58,8 +58,9 @@ class MotorControlZ(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        trajectory.pos_move(self)
-        self.done_move.publish(self.node_name)
+        if self.delta[mode]:
+            trajectory.pos_move(self)
+            self.done_move.publish(self.node_name)
 
 
 # Main function

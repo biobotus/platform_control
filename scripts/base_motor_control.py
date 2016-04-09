@@ -3,7 +3,7 @@
 # Imports
 import pigpio
 import rospy
-from std_msgs.msg import Bool, String
+from std_msgs.msg import String
 import time
 
 class BaseMotorControl():
@@ -17,7 +17,7 @@ class BaseMotorControl():
 
         # ROS subscriptions
         self.subscriber = rospy.Subscriber('Motor_Kill', String, self.callback_kill)
-        self.subscriber = rospy.Subscriber('Platform_Init', Bool, self.callback_init)
+        self.subscriber = rospy.Subscriber('Platform_Init', String, self.callback_init)
 
         # ROS publishments
         self.done_move = rospy.Publisher('Done_Move', String, queue_size=10)
@@ -46,14 +46,15 @@ class BaseMotorControl():
                     self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
 
     def callback_init(self, data):
-        if not data.data:
+        if data.data != self.node_name:
             return
 
+        print("Initializing {0}".format(self.node_name))
         for A in self.modes:
             sleep_time = 0.125/self.f_min[A]
 
             # Set direction towards home
-            self.gpio.write(self.dir_pin[A], pigpio.LOW)
+            self.gpio.write(self.dir_pin[A], pigpio.HIGH)
 
             # Enable motion
             for B in range(self.sync[A]):
@@ -69,21 +70,8 @@ class BaseMotorControl():
 
                 sw_or = self.check_sw_init(A)
 
-                # TODO - Add sync condition
-                # # Initialization
-                # while not self.gpio.read(self.limit_sw[A]):
-                #     self.gpio.write(self.clock_pin[A], pigpio.HIGH)
-                #     start_time = time.clock()
-                #     while(time.clock() - start_time < sleep_time):
-                #         pass
-                #     self.gpio.write(self.clock_pin[A], pigpio.LOW)
-                #     start_time = time.clock()
-                #     while(time.clock() - start_time < sleep_time):
-                #         pass
+        print("Init of {0} done".format(self.node_name))
 
-                # # Disable motion
-                # for B in range(self.sync[A]):
-                #     self.gpio.write(self.enable_pin[A], pigpio.LOW)
 
     def check_sw_init(self, A):
         """
