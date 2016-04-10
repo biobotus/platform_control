@@ -20,7 +20,7 @@ class BaseMotorControl():
         self.subscriber = rospy.Subscriber('Platform_Init', String, self.callback_init)
 
         # ROS publishments
-        self.done_move = rospy.Publisher('Done_Move', String, queue_size=10)
+        self.done_module = rospy.Publisher('Done_Module', String, queue_size=10)
         self.error = rospy.Publisher('Error', String, queue_size=10)
 
     def init_gpio(self):

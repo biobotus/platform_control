@@ -57,7 +57,7 @@ class MotorControlXY(BaseMotorControl):
             return
 
         trajectory.pos_move(self)
-        self.done_move.publish(self.node_name)
+        self.done_module.publish(self.node_name)
 
 
 # Main function

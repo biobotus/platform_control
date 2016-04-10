@@ -60,7 +60,7 @@ class MotorControlZ(BaseMotorControl):
 
         if self.delta[mode]:
             trajectory.pos_move(self)
-            self.done_move.publish(self.node_name)
+            self.done_module.publish(self.node_name)
 
 
 # Main function
