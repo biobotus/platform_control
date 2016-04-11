@@ -51,10 +51,10 @@ class BaseMotorControl():
 
         print("Initializing {0}".format(self.node_name))
         for A in self.modes:
-            sleep_time = 0.125/self.f_min[A]
+            sleep_time = 1.0/self.f_init
 
             # Set direction towards home
-            self.gpio.write(self.dir_pin[A], pigpio.HIGH)
+            self.gpio.write(self.dir_pin[A], self.init_dir)
 
             # Enable motion
             for B in range(self.sync[A]):

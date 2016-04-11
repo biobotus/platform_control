@@ -22,6 +22,8 @@ class MotorControlMP(BaseMotorControl):
         self.f_max      = [0]
         self.f_min      = [0]
         self.max_slope  = [10]
+        self.f_init     = 500
+        self.init_dir   = pigpio.HIGH
 
         # Position control
         self.mode       = [MP]

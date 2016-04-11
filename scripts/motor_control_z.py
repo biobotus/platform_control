@@ -23,6 +23,8 @@ class MotorControlZ(BaseMotorControl):
         self.f_max     = [5000, 6000, 6000]  # Tested and works at 15 KHz
         self.f_min     = [500  ,  500, 500 ]
         self.max_slope = [10   ,    5, 5   ]
+        self.f_init    = 5000
+        self.init_dir  = pigpio.LOW
 
         # Position control
         self.mode      = [Z0, Z1, Z2]  # Used for Z0, Z1 and Z2
