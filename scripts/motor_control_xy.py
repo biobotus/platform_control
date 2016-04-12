@@ -20,11 +20,12 @@ class MotorControlXY(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [10000,  10000 ] # Original values[10000, 14000]
-        self.f_min     = [500,   500  ]
-        self.max_slope = [4,     5    ]
-        self.f_init    = 5000
+        self.f_max     = [10000, 10000]  # Original values [10000, 14000]
+        self.f_min     = [500  , 500  ]
+        self.max_slope = [4    , 5    ]
+        self.f_init    = [4000 , 4000 ]  # Valid freq (Hz): 8000 4000 2000 1600
         self.init_dir  = pigpio.HIGH
+        self.init_list = []
 
         # Position control
         self.mode       = [X, Y]
@@ -60,6 +61,30 @@ class MotorControlXY(BaseMotorControl):
 
         trajectory.pos_move(self)
         self.done_module.publish(self.node_name)
+
+    def callback_limit_sw_x0(self, gpio, level, tick):
+        self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+        self.cb_sw_x0.cancel()
+        self.init_list.remove("00")
+
+    def callback_limit_sw_x1(self, gpio, level, tick):
+        self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
+        self.cb_sw_x1.cancel()
+        self.init_list.remove("01")
+
+    def callback_limit_sw_y(self, gpio, level, tick):
+        self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
+        self.cb_sw_y.cancel()
+        self.init_list.remove("10")
+
+    def set_cb_sw(self):
+        self.cb_sw_x0 = self.gpio.callback(self.limit_sw[0][0], pigpio.FALLING_EDGE, \
+                                                 self.callback_limit_sw_x0)
+        self.cb_sw_x1 = self.gpio.callback(self.limit_sw[0][1], pigpio.FALLING_EDGE, \
+                                                 self.callback_limit_sw_x1)
+        self.cb_sw_y = self.gpio.callback(self.limit_sw[1][0], pigpio.FALLING_EDGE,  \
+                                                  self.callback_limit_sw_y)
+
 
 
 # Main function

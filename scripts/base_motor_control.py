@@ -50,50 +50,32 @@ class BaseMotorControl:
             return
 
         print("Initializing {0}".format(self.node_name))
-        for A in self.modes:
-            sleep_time = 1.0/self.f_init
+        self.set_cb_sw()
 
+        for A in self.modes:
             # Set direction towards home
             self.gpio.write(self.dir_pin[A], self.init_dir)
 
             # Enable motion
+            sw_or = 0
             for B in range(self.sync[A]):
-                self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
+                current = self.gpio.read(self.limit_sw[A][B])
+                sw_or = sw_or or current
+                if current:
+                    self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
+                    self.init_list.append("{0}{1}".format(A, B))
 
-            sw_or = self.check_sw_init(A)
+            # Start PWM Frequency
+            if sw_or:
+                self.set_PWM_frequency(self.clock_pin[A], self.f_init[A])
 
-            while sw_or:
-                self.gpio.write(self.clock_pin[A], pigpio.HIGH)
-                software_sleep(sleep_time)
-                self.gpio.write(self.clock_pin[A], pigpio.LOW)
-                software_sleep(sleep_time)
-
-                sw_or = self.check_sw_init(A)
+        while self.init_list:
+            self.rate.sleep()
 
         print("Init of {0} done".format(self.node_name))
         self.done_module.publish(self.node_name)
-
-
-    def check_sw_init(self, A):
-        """
-        Disables enable_pin on any of the sync'd axis if its switch is 0.
-        Returns 0 if all sync'd limit_sw pins are at 0, else returns 1.
-        """
-
-        sw_or = 0
-        for B in range(self.sync[A]):
-            sw = self.gpio.read(self.limit_sw[A][B])
-            sw_or = sw_or or sw
-            if not sw:
-                self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
-        return sw_or
 
     # Listening function
     def listener(self):
         rospy.spin()
 
-
-def software_sleep(sleep_time):
-    start_time = time.clock()
-    while(time.clock() - start_time < sleep_time):
-        pass
