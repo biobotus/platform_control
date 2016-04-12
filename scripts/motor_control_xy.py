@@ -20,10 +20,10 @@ class MotorControlXY(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [7000,  7000 ] # Original values[10000, 14000]
+        self.f_max     = [10000,  10000 ] # Original values[10000, 14000]
         self.f_min     = [500,   500  ]
         self.max_slope = [4,     5    ]
-        self.f_init    = 4000
+        self.f_init    = 5000
         self.init_dir  = pigpio.HIGH
 
         # Position control

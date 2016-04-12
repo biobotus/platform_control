@@ -6,7 +6,7 @@ import rospy
 from std_msgs.msg import String
 import time
 
-class BaseMotorControl():
+class BaseMotorControl:
     """This class defines methods that are used by all MotorControl nodes."""
 
     def __init__(self):
@@ -71,6 +71,7 @@ class BaseMotorControl():
                 sw_or = self.check_sw_init(A)
 
         print("Init of {0} done".format(self.node_name))
+        self.done_module.publish(self.node_name)
 
 
     def check_sw_init(self, A):
