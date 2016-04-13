@@ -20,10 +20,10 @@ class MotorControlXY(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [10000, 10000]  # Original values [10000, 14000]
-        self.f_min     = [500  , 500  ]
-        self.max_slope = [4    , 5    ]
-        self.f_init    = [4000 , 4000 ]  # Valid freq (Hz): 8000 4000 2000 1600
+        self.f_max     = [12000, 14000]
+        self.f_min     = [  500,   500]
+        self.max_slope = [    5,     5]
+        self.f_init    = 2000
         self.init_dir  = pigpio.HIGH
         self.init_list = []
 
@@ -38,8 +38,8 @@ class MotorControlXY(BaseMotorControl):
         # GPIO pins
         self.enable_pin = [[14, 15], [11]]  # pins [8,  10] and [23]
         self.limit_sw   = [[23, 24], [12]]  # pins [16, 18] and [32]
-        self.clock_pin  = [ 5      ,  10 ]  # pins  29      and 19
-        self.dir_pin    = [ 6      ,  9  ]  # pins  31      and 21
+        self.clock_pin  = [  5     ,  10 ]  # pins  29      and 19
+        self.dir_pin    = [  6     ,   9 ]  # pins  31      and 21
 
         self.init_gpio()
 
@@ -65,17 +65,29 @@ class MotorControlXY(BaseMotorControl):
     def callback_limit_sw_x0(self, gpio, level, tick):
         self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
         self.cb_sw_x0.cancel()
-        self.init_list.remove("00")
+        try:
+            self.init_list.remove("00")
+            print("sw_x0 pressed")
+        except ValueError:
+            pass
 
     def callback_limit_sw_x1(self, gpio, level, tick):
         self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
         self.cb_sw_x1.cancel()
-        self.init_list.remove("01")
+        try:
+            self.init_list.remove("01")
+            print("sw_x1 pressed")
+        except ValueError:
+            pass
 
     def callback_limit_sw_y(self, gpio, level, tick):
         self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
         self.cb_sw_y.cancel()
-        self.init_list.remove("10")
+        try:
+            self.init_list.remove("10")
+            print("sw_y pressed")
+        except ValueError:
+            pass
 
     def set_cb_sw(self):
         self.cb_sw_x0 = self.gpio.callback(self.limit_sw[0][0], pigpio.FALLING_EDGE, \

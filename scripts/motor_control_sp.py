@@ -19,10 +19,10 @@ class MotorControlSP(BaseMotorControl):
         self.subscriber = rospy.Subscriber('Pulse_SP', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [0]
-        self.f_min     = [0]
+        self.f_max     = [ 0]
+        self.f_min     = [ 0]
         self.max_slope = [10]
-        self.f_init    = [4000]  # Valid freq (Hz): 8000 4000 2000 1600
+        self.f_init    = 8000
         self.init_dir  = pigpio.HIGH
         self.init_list = []
 
@@ -70,7 +70,11 @@ class MotorControlSP(BaseMotorControl):
     def callback_limit_sw_sp(self, gpio, level, tick):
         self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
         self.cb_sw_sp.cancel()
-        self.init_list.remove("00")
+        try:
+            self.init_list.remove("00")
+            print("sw_sp pressed")
+        except ValueError:
+            pass
 
     def set_cb_sw(self):
         self.cb_sw_sp = self.gpio.callback(self.limit_sw[0][0], \
