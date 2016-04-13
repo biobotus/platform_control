@@ -60,25 +60,25 @@ class MotorControlMP(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        print("{0} freq : {1}".format(self.node_name, self.f_max))
-        print("{0} delta : {1}.".format(self.node_name, self.delta[MP]))
+        print('{0} freq : {1}'.format(self.node_name, self.f_max))
+        print('{0} delta : {1}.'.format(self.node_name, self.delta[MP]))
 
         if self.delta[MP]:
             trajectory.pos_move(self)
             self.done_module.publish(self.node_name)
 
     def callback_limit_sw_mp(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
         self.cb_sw_mp.cancel()
-        try:
-            self.init_list.remove("00")
-            print("sw_mp pressed")
-        except ValueError:
-            pass
+        if '00' in self.init_list:
+            self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+            self.init_list.remove('00')
+            print('sw_mp pressed')
 
     def set_cb_sw(self):
-        self.cb_sw_mp = self.gpio.callback(self.limit_sw[0][0], \
-                                pigpio.FALLING_EDGE, self.callback_limit_sw_mp)
+        if self.gpio.read(self.limit_sw[0][0]):
+            self.cb_sw_mp = self.gpio.callback(self.limit_sw[0][0], \
+                                               pigpio.FALLING_EDGE, \
+                                               self.callback_limit_sw_mp)
 
 
 # Main function

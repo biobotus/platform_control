@@ -52,7 +52,7 @@ def soft_move(nb_pulse, f_max, f_min, max_slope):
         assert f_max >= f_min
         assert max_slope > 0
     except AssertionError:
-        print("soft_move received an invalid argument")
+        print('soft_move received an invalid argument')
         return []
 
     magic = int((f_max-f_min)/max_slope)
@@ -73,8 +73,8 @@ def soft_move(nb_pulse, f_max, f_min, max_slope):
     try:
         assert len(dF) == nb_pulse
     except AssertionError:
-        print("Error - frequency trapeze has incorrect length ({0}), \
-                            should be {1}".format(len(dF), nb_pulse))
+        print('Error - frequency trapeze has incorrect length ({0}), \
+                            should be {1}'.format(len(dF), nb_pulse))
         return None
 
     return [int(500000/f) for f in dF]
@@ -167,14 +167,14 @@ def gen_single_clock(self, A, dt):
             wave_id2 = self.gpio.wave_create()
             wave_id_list = [wave_id1, wave_id2]
 
-    print("{0} wid : {1}".format(self.node_name, wave_id_list))
+    print('{0} wid : {1}'.format(self.node_name, wave_id_list))
 
     for B in range(self.sync[A]):
         self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
 
     self.gpio.wave_chain(wave_id_list)
 
-    print("STARTING {0}".format(self.node_name))
+    print('STARTING {0}'.format(self.node_name))
 
     while self.gpio.wave_tx_busy():
         self.rate.sleep()
@@ -192,7 +192,7 @@ def gen_single_clock(self, A, dt):
     if wave_id3 is not None:
         self.gpio.wave_delete(wave_id3)
 
-    print("{0} DONE".format(self.node_name))
+    print('{0} DONE'.format(self.node_name))
 
 
 # TODO in Fall 2016

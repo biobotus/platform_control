@@ -40,7 +40,7 @@ class BaseMotorControl:
 
     def callback_kill(self, data):
         if data.data == self.node_name:
-            print("Killing {0}".format(self.node_name))
+            print('Killing {0}'.format(self.node_name))
             for A in self.modes:
                 for B in range(self.sync[A]):
                     self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
@@ -49,7 +49,7 @@ class BaseMotorControl:
         if data.data != self.node_name:
             return
 
-        print("Initializing {0}".format(self.node_name))
+        print('Initializing {0}'.format(self.node_name))
         self.set_cb_sw()
         sw_or = 0
         active_gpios = 0
@@ -65,7 +65,8 @@ class BaseMotorControl:
                 sw_or = sw_or or current
                 if current:
                     self.gpio.write(self.enable_pin[A][B], pigpio.HIGH)
-                    self.init_list.append("{0}{1}".format(A, B))
+                    self.init_list.append('{0}{1}'.format(A, B))
+                    print('List contains : {0}'.format(self.init_list))
                     active_gpios = active_gpios | (1 << self.clock_pin[A])
                 else:
                     self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
@@ -87,7 +88,7 @@ class BaseMotorControl:
             self.gpio.wave_tx_stop()
             self.gpio.wave_clear()
 
-        print("Init of {0} done".format(self.node_name))
+        print('Init of {0} done'.format(self.node_name))
         self.done_module.publish(self.node_name)
 
     # Listening function

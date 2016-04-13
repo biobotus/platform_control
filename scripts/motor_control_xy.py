@@ -63,40 +63,39 @@ class MotorControlXY(BaseMotorControl):
         self.done_module.publish(self.node_name)
 
     def callback_limit_sw_x0(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
         self.cb_sw_x0.cancel()
-        try:
-            self.init_list.remove("00")
-            print("sw_x0 pressed")
-        except ValueError:
-            pass
+        if '00' in self.init_list:
+            self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+            self.init_list.remove('00')
+            print('sw_x0 pressed')
 
     def callback_limit_sw_x1(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
         self.cb_sw_x1.cancel()
-        try:
-            self.init_list.remove("01")
-            print("sw_x1 pressed")
-        except ValueError:
-            pass
+        if '01' in self.init_list:
+            self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
+            self.init_list.remove('01')
+            print('sw_x1 pressed')
 
     def callback_limit_sw_y(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
         self.cb_sw_y.cancel()
-        try:
-            self.init_list.remove("10")
-            print("sw_y pressed")
-        except ValueError:
-            pass
+        if '10' in self.init_list:
+            self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
+            self.init_list.remove('10')
+            print('sw_y pressed')
 
     def set_cb_sw(self):
-        self.cb_sw_x0 = self.gpio.callback(self.limit_sw[0][0], pigpio.FALLING_EDGE, \
-                                                 self.callback_limit_sw_x0)
-        self.cb_sw_x1 = self.gpio.callback(self.limit_sw[0][1], pigpio.FALLING_EDGE, \
-                                                 self.callback_limit_sw_x1)
-        self.cb_sw_y = self.gpio.callback(self.limit_sw[1][0], pigpio.FALLING_EDGE,  \
-                                                  self.callback_limit_sw_y)
-
+        if self.gpio.read(self.limit_sw[0][0]):
+            self.cb_sw_x0 = self.gpio.callback(self.limit_sw[0][0], \
+                                               pigpio.FALLING_EDGE, \
+                                               self.callback_limit_sw_x0)
+        if self.gpio.read(self.limit_sw[0][1]):
+            self.cb_sw_x1 = self.gpio.callback(self.limit_sw[0][1], \
+                                               pigpio.FALLING_EDGE, \
+                                               self.callback_limit_sw_x1)
+        if self.gpio.read(self.limit_sw[1][0]):
+            self.cb_sw_y  = self.gpio.callback(self.limit_sw[1][0], \
+                                               pigpio.FALLING_EDGE, \
+                                               self.callback_limit_sw_y)
 
 
 # Main function
