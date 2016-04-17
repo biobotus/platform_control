@@ -21,8 +21,8 @@ class GlobalMotorControl:
         self.pub_sw = rospy.Publisher('Global_SW', String, queue_size=10)
 
         # GPIO pins
-        self.global_enable_pin = 4   # pin 7
-        self.global_limit_sw   = 18  # pin 12
+        self.global_enable_pin =  4  # pin 7
+        self.global_limit_sw   = 21  # pin 40
 
         self.gpio = pigpio.pi()
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)

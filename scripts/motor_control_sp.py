@@ -2,8 +2,8 @@
 
 # Imports
 from base_motor_control import BaseMotorControl
+from biobot_ros_msgs.msg import IntList
 import pigpio
-from platform_control.msg import IntList
 import rospy
 from std_msgs.msg import Int32
 import trajectory

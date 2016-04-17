@@ -2,8 +2,8 @@
 
 # Imports
 from base_motor_control import BaseMotorControl
+from biobot_ros_msgs.msg import IntList
 import pigpio
-from platform_control.msg import IntList
 import rospy
 from std_msgs.msg import String
 import trajectory
@@ -36,10 +36,10 @@ class MotorControlZ(BaseMotorControl):
         self.nb_pulse  = [0,  0,  0 ]
 
         # GPIO pins
-        self.enable_pin = [[26], [ 7], [22]]  # pins [37], [26] and [15]
-        self.limit_sw   = [[16], [20], [21]]  # pins [36], [38] and [40]
-        self.clock_pin  = [ 13 ,  25 ,  17 ]  # pins  33 ,  22  and  11
-        self.dir_pin    = [ 19 ,   8 ,  27 ]  # pins  35 ,  24  and  13
+        self.enable_pin = [[22], [11], [13]]  # pins [22], [23] and [33]
+        self.limit_sw   = [[12], [16], [20]]  # pins [12], [36] and [38]
+        self.clock_pin  = [  9 ,   6 ,  26 ]  # pins  21 ,  31  and  37
+        self.dir_pin    = [ 10 ,   5 ,  19 ]  # pins  19 ,  29  and  35
 
         self.init_gpio()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Imports
-from platform_control.msg import IntList
+from biobot_ros_msgs.msg import IntList
 import rospy
 from std_msgs.msg import String
 
