@@ -5,7 +5,6 @@ from base_motor_control import BaseMotorControl
 from biobot_ros_msgs.msg import IntList
 import pigpio
 import rospy
-from platform_control.msg import IntList
 import trajectory
 from trajectory import MP
 
@@ -16,7 +15,7 @@ class MotorControlMP(BaseMotorControl):
 
         # ROS subscriptions
         # Expected format of Pulse_MP is int_mp
-        self.subscriber = rospy.Subscriber('Pulse_MP', Int32, self.callback_pos)
+        self.subscriber = rospy.Subscriber('Pulse_MP', IntList, self.callback_pos)
 
         # Frequency trapeze constants
         self.f_max     = [ 0]
@@ -46,10 +45,9 @@ class MotorControlMP(BaseMotorControl):
     def callback_pos(self, data):
         try:
             assert len(data.data) == 2
-            assert type(self.delta[MP][0]) == int
-            assert type(self.delta[MP][0]) == int
-            assert abs(self.delta[MP][1]) < 65536
-            assert abs(self.delta[MP][1]) < 65536
+            assert type(data.data[0]) == int
+            assert type(data.data[1]) == int
+            assert abs(data.data[1]) < 65536
             self.delta[MP] = data.data[1]
             self.f_max = [data.data[0]]
             self.f_min = [data.data[0]]

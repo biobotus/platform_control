@@ -6,7 +6,6 @@ import pigpio
 import rospy
 from std_msgs.msg import Bool, String
 
-
 class GlobalMotorControl:
     def __init__(self, ID):
         self.node_name = self.__class__.__name__ + ID

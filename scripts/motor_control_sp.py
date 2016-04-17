@@ -5,7 +5,6 @@ from base_motor_control import BaseMotorControl
 from biobot_ros_msgs.msg import IntList
 import pigpio
 import rospy
-from std_msgs.msg import Int32
 import trajectory
 from trajectory import SP
 
@@ -46,10 +45,9 @@ class MotorControlSP(BaseMotorControl):
     def callback_pos(self, data):
         try:
             assert len(data.data) == 2
-            assert type(self.delta[SP][0]) == int
-            assert type(self.delta[SP][0]) == int
-            assert abs(self.delta[SP][1]) < 65536
-            assert abs(self.delta[SP][1]) < 65536
+            assert type(data.data[0]) == int
+            assert type(data.data[1]) == int
+            assert abs(data.data[1]) < 65536
             self.delta[SP] = data.data[1]
             self.f_max = [data.data[0]]
             self.f_min = [data.data[0]]
