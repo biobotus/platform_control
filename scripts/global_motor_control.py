@@ -27,7 +27,7 @@ class GlobalMotorControl:
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
         self.gpio.set_mode(self.global_limit_sw, pigpio.INPUT)
-        self.cb_sw_active = False
+        self.cb_active = False
 
     def __del__(self):
         if hasattr(self.__class__, 'gpio'):
