@@ -27,25 +27,26 @@ class GlobalMotorControl:
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
         self.gpio.set_mode(self.global_limit_sw, pigpio.INPUT)
+        self.cb_sw = self.gpio.callback(self.global_limit_sw)
         self.cb_active = False
 
     def __del__(self):
         if hasattr(self.__class__, 'gpio'):
-            self.gpio.write(self.global_enable_pin, pigpio.LOW)
+            self.gpio.write(self.global_enable_pin, pigpio.HIGH)
 
     def callback_gpio(self, data):
         if data.data:
-            self.gpio.write(self.global_enable_pin, pigpio.HIGH)
+            self.gpio.write(self.global_enable_pin, pigpio.LOW)
             print("Global chip enable")
         else:
-            self.gpio.write(self.global_enable_pin, pigpio.LOW)
+            self.gpio.write(self.global_enable_pin, pigpio.HIGH)
             self.cb_sw.cancel()
             self.cb_active = False
             print("Global chip disable")
 
-    def callback_sw(self):
+    def callback_sw(self, gpio, level, tick):
         self.cb_sw.cancel()
-        self.gpio.write(self.global_enable_pin, pigpio.LOW)
+        self.gpio.write(self.global_enable_pin, pigpio.HIGH)
         self.pub_sw.publish(self.node_name)
         print("Cancelling global switch callback")
         self.cb_active = False
