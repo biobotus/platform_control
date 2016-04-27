@@ -37,14 +37,23 @@ class MotorControlZ(BaseMotorControl):
 
         # GPIO pins
         self.enable_pin = [[22], [11], [13]]  # pins [22], [23] and [33]
-        self.limit_sw   = [[12], [16], [20]]  # pins [12], [36] and [38]
+        self.limit_sw   = [[12], [16], [20]]  # pins [32], [36] and [38]
         self.clock_pin  = [  9 ,   6 ,  26 ]  # pins  21 ,  31  and  37
         self.dir_pin    = [ 10 ,   5 ,  19 ]  # pins  19 ,  29  and  35
 
         self.init_gpio()
-        self.cb_sw_z0 = None
-        self.cb_sw_z1 = None
-        self.cb_sw_z2 = None
+        self.cb_sw_z0_flag = False
+        self.cb_sw_z1_flag = False
+        self.cb_sw_z2_flag = False
+        self.cb_sw_z0 = self.gpio.callback(self.limit_sw[0][0], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_z0)
+        self.cb_sw_z1 = self.gpio.callback(self.limit_sw[1][0], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_z1)
+        self.cb_sw_z2  = self.gpio.callback(self.limit_sw[2][0], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_z2)
 
     # Callback for new position
     def callback_pos(self, data):
@@ -69,42 +78,36 @@ class MotorControlZ(BaseMotorControl):
             self.done_module.publish(self.node_name)
 
     def callback_limit_sw_z0(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
-        self.cb_sw_z0.cancel()
-        if '00' in self.init_list:
-            self.init_list.remove('00')
-            print('sw_z0 pressed')
+        if self.cb_sw_z0_flag:
+            self.cb_sw_z0_flag = False
+            self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+            if '00' in self.init_list:
+                self.init_list.remove('00')
+                print('sw_z0 pressed')
 
     def callback_limit_sw_z1(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
-        self.cb_sw_z1.cancel()
-        if '10' in self.init_list:
-            self.init_list.remove('10')
-            print('sw_z1 pressed')
+        if self.cb_sw_z1_flag:
+            self.cb_sw_z1_flag = False
+            self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
+            if '10' in self.init_list:
+                self.init_list.remove('10')
+                print('sw_z1 pressed')
 
     def callback_limit_sw_z2(self, gpio, level, tick):
-        self.gpio.write(self.enable_pin[2][0], pigpio.LOW)
-        self.cb_sw_z2.cancel()
-        if '20' in self.init_list:
-            self.init_list.remove('20')
-            print('sw_z2 pressed')
+        if self.cb_sw_z2_flag:
+            self.cb_sw_z2_flag = False
+            self.gpio.write(self.enable_pin[2][0], pigpio.LOW)
+            if '20' in self.init_list:
+                self.init_list.remove('20')
+                print('sw_z2 pressed')
 
     def set_cb_sw(self):
         if self.gpio.read(self.limit_sw[0][0]):
-            del(self.cb_sw_z0)
-            self.cb_sw_z0 = self.gpio.callback(self.limit_sw[0][0], \
-                                               pigpio.FALLING_EDGE, \
-                                               self.callback_limit_sw_z0)
+            self.cb_sw_z0_flag = True
         if self.gpio.read(self.limit_sw[1][0]):
-            del(self.cb_sw_z1)
-            self.cb_sw_z1 = self.gpio.callback(self.limit_sw[1][0], \
-                                               pigpio.FALLING_EDGE, \
-                                               self.callback_limit_sw_z1)
+            self.cb_sw_z1_flag = True
         if self.gpio.read(self.limit_sw[2][0]):
-            del(self.cb_sw_z2)
-            self.cb_sw_z2  = self.gpio.callback(self.limit_sw[2][0], \
-                                               pigpio.FALLING_EDGE, \
-                                               self.callback_limit_sw_z2)
+            self.cb_sw_z2_flag = True
 
 
 # Main function

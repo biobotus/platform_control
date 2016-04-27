@@ -14,16 +14,18 @@ class GlobalMotorControl:
 
         # ROS subscriptions
         # Expected format of Global_Enable is True or False
-        self.subscriber = rospy.Subscriber('Global_Enable', Bool, self.callback_gpio)
+        self.subscriber = rospy.Subscriber('Global_Enable', Bool, self.callback_enable)
 
         # ROS publishments
-        self.pub_sw = rospy.Publisher('Global_SW', String, queue_size=10)
+        self.error = rospy.Publisher('Error', String, queue_size=10)
 
         # GPIO pins
         self.global_enable_pin =  4  # pin 7
         self.global_limit_sw   = 21  # pin 40
 
         self.gpio = pigpio.pi()
+        self.gpio.wave_tx_stop()
+        self.gpio.wave_clear()
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
         self.gpio.set_mode(self.global_limit_sw, pigpio.INPUT)
@@ -34,7 +36,7 @@ class GlobalMotorControl:
         if hasattr(self.__class__, 'gpio'):
             self.gpio.write(self.global_enable_pin, pigpio.HIGH)
 
-    def callback_gpio(self, data):
+    def callback_enable(self, data):
         if data.data:
             self.gpio.write(self.global_enable_pin, pigpio.LOW)
             print("Global chip enable")
@@ -47,7 +49,7 @@ class GlobalMotorControl:
     def callback_sw(self, gpio, level, tick):
         self.cb_sw.cancel()
         self.gpio.write(self.global_enable_pin, pigpio.HIGH)
-        self.pub_sw.publish(self.node_name)
+        self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
         print("Cancelling global switch callback")
         self.cb_active = False
 

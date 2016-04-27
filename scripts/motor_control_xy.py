@@ -23,7 +23,7 @@ class MotorControlXY(BaseMotorControl):
         self.f_max     = [10000, 10000]
         self.f_min     = [  500,   500]
         self.max_slope = [    4,     5]
-        self.f_init    = 2000
+        self.f_init    = 1000
         self.init_dir  = pigpio.HIGH
         self.init_list = []
 
@@ -42,9 +42,18 @@ class MotorControlXY(BaseMotorControl):
         self.dir_pin    = [ 25     ,  17 ]  # pins  22      and  11
 
         self.init_gpio()
-        self.cb_sw_x0 = None
-        self.cb_sw_x1 = None
-        self.cb_sw_y  = None
+        self.cb_sw_x0_flag = False
+        self.cb_sw_x1_flag = False
+        self.cb_sw_y_flag = False
+        self.cb_sw_x0 = self.gpio.callback(self.limit_sw[0][0], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_x0)
+        self.cb_sw_x1 = self.gpio.callback(self.limit_sw[0][1], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_x1)
+        self.cb_sw_y  = self.gpio.callback(self.limit_sw[1][0], \
+                                           pigpio.FALLING_EDGE, \
+                                           self.callback_limit_sw_y)
 
     # Callback for new position
     def callback_pos(self, data):
@@ -59,11 +68,43 @@ class MotorControlXY(BaseMotorControl):
         except (SyntaxError, AssertionError) as e:
             msg = 'Invalid pulse number received for X, Y: {0}'.format(e)
             print(msg)
-            self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
+            #self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
         trajectory.pos_move(self)
         self.done_module.publish(self.node_name)
+
+    def callback_limit_sw_x0(self, gpio, level, tick):
+        if self.cb_sw_x0_flag:
+            self.cb_sw_x0_flag = False
+            self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+            if '00' in self.init_list:
+                self.init_list.remove('00')
+                print('sw_x0 pressed')
+
+    def callback_limit_sw_x1(self, gpio, level, tick):
+        if self.cb_sw_x1_flag:
+            self.cb_sw_x1_flag = False
+            self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
+            if '01' in self.init_list:
+                self.init_list.remove('01')
+                print('sw_x1 pressed')
+
+    def callback_limit_sw_y(self, gpio, level, tick):
+        if self.cb_sw_y_flag:
+            self.cb_sw_y_flag = False
+            self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
+            if '10' in self.init_list:
+                self.init_list.remove('10')
+                print('sw_y pressed')
+
+    def set_cb_sw(self):
+        if self.gpio.read(self.limit_sw[0][0]):
+            self.cb_sw_x0_flag = True
+        if self.gpio.read(self.limit_sw[0][1]):
+            self.cb_sw_x1_flag = True
+        if self.gpio.read(self.limit_sw[1][0]):
+            self.cb_sw_y_flag = True
 
 
 # Main function
