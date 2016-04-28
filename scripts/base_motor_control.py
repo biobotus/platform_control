@@ -54,7 +54,7 @@ class BaseMotorControl:
             return
 
         print('Initializing {0}'.format(self.node_name))
-        self.set_cb_sw()
+        self.set_cb_sw(init=True)
         sw_or = 0
         active_gpios = 0
         microseconds = 1000000*0.5/self.f_init
@@ -91,10 +91,20 @@ class BaseMotorControl:
         finally:
             self.gpio.wave_tx_stop()
             self.gpio.wave_clear()
-            print('Stopped wave on {0}'.format(self.node_name))
 
+        self.move_5mm()
+
+        self.set_cb_sw()
         print('Init of {0} done'.format(self.node_name))
         self.done_module.publish(self.node_name)
+
+    def set_cb_sw(self):
+        """This function is to be redefined in every child class"""
+        return
+
+    def move_5mm(self):
+        """This function is to be redefined in every child class"""
+        return
 
     # Listening function
     def listener(self):

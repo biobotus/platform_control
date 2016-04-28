@@ -26,11 +26,21 @@ class GlobalMotorControl:
         self.gpio = pigpio.pi()
         self.gpio.wave_tx_stop()
         self.gpio.wave_clear()
+
+        # Disable internal software pull-up/pull-down resistors
+        no_pud_list = range(2, 27)
+        no_pud_list.remove(self.global_enable_pin)
+        for gpio_pin in no_pud_list:
+            self.gpio.set_pull_up_down(gpio_pin, pigpio.PUD_OFF)
+
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
         self.gpio.set_mode(self.global_limit_sw, pigpio.INPUT)
-        self.cb_sw = self.gpio.callback(self.global_limit_sw)
+
         self.cb_active = False
+        self.cb_sw = self.gpio.callback(self.global_limit_sw, \
+                                        pigpio.FALLING_EDGE, \
+                                        self.callback_sw)
 
     def __del__(self):
         if hasattr(self.__class__, 'gpio'):
@@ -42,16 +52,15 @@ class GlobalMotorControl:
             print("Global chip enable")
         else:
             self.gpio.write(self.global_enable_pin, pigpio.HIGH)
-            self.cb_sw.cancel()
             self.cb_active = False
             print("Global chip disable")
 
     def callback_sw(self, gpio, level, tick):
-        self.cb_sw.cancel()
-        self.gpio.write(self.global_enable_pin, pigpio.HIGH)
-        self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
-        print("Cancelling global switch callback")
-        self.cb_active = False
+        if self.cb_active:
+            self.cb_active = False
+            self.gpio.write(self.global_enable_pin, pigpio.HIGH)
+            self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
+            print("Cancelling global switch callback")
 
     def listener(self):
         try:
@@ -60,9 +69,6 @@ class GlobalMotorControl:
                 if not self.cb_active and self.gpio.read(self.global_limit_sw):
                     self.cb_active = True
                     print("Creating global switch callback")
-                    self.cb_sw = self.gpio.callback(self.global_limit_sw, \
-                                                    pigpio.FALLING_EDGE, \
-                                                    self.callback_sw)
 
         finally:
             del self

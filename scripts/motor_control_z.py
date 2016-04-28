@@ -45,13 +45,16 @@ class MotorControlZ(BaseMotorControl):
         self.cb_sw_z0_flag = False
         self.cb_sw_z1_flag = False
         self.cb_sw_z2_flag = False
+        self.cb_sw_z0_flag_init = False
+        self.cb_sw_z1_flag_init = False
+        self.cb_sw_z2_flag_init = False
         self.cb_sw_z0 = self.gpio.callback(self.limit_sw[0][0], \
                                            pigpio.FALLING_EDGE, \
                                            self.callback_limit_sw_z0)
         self.cb_sw_z1 = self.gpio.callback(self.limit_sw[1][0], \
                                            pigpio.FALLING_EDGE, \
                                            self.callback_limit_sw_z1)
-        self.cb_sw_z2  = self.gpio.callback(self.limit_sw[2][0], \
+        self.cb_sw_z2 = self.gpio.callback(self.limit_sw[2][0], \
                                            pigpio.FALLING_EDGE, \
                                            self.callback_limit_sw_z2)
 
@@ -78,37 +81,65 @@ class MotorControlZ(BaseMotorControl):
             self.done_module.publish(self.node_name)
 
     def callback_limit_sw_z0(self, gpio, level, tick):
-        if self.cb_sw_z0_flag:
-            self.cb_sw_z0_flag = False
+        if self.cb_sw_z0_flag_init:
+            self.cb_sw_z0_flag_init = False
             self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
             if '00' in self.init_list:
                 self.init_list.remove('00')
                 print('sw_z0 pressed')
+        elif self.cb_sw_z0_flag:
+            self.cb_sw_z0_flag = False
+            self.gpio.write(self.enable_pin[0][0], pigpio.LOW)
+            print("Error: limit switch Z0 pressed!")
+            self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
 
     def callback_limit_sw_z1(self, gpio, level, tick):
-        if self.cb_sw_z1_flag:
-            self.cb_sw_z1_flag = False
+        if self.cb_sw_z1_flag_init:
+            self.cb_sw_z1_flag_init = False
             self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
             if '10' in self.init_list:
                 self.init_list.remove('10')
                 print('sw_z1 pressed')
+        elif self.cb_sw_z1_flag:
+            self.cb_sw_z1_flag = False
+            self.gpio.write(self.enable_pin[1][0], pigpio.LOW)
+            print("Error: limit switch Z1 pressed!")
+            self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
 
     def callback_limit_sw_z2(self, gpio, level, tick):
-        if self.cb_sw_z2_flag:
-            self.cb_sw_z2_flag = False
+        if self.cb_sw_z2_flag_init:
+            self.cb_sw_z2_flag_init = False
             self.gpio.write(self.enable_pin[2][0], pigpio.LOW)
             if '20' in self.init_list:
                 self.init_list.remove('20')
                 print('sw_z2 pressed')
+        elif self.cb_sw_z2_flag:
+            self.cb_sw_z2_flag = False
+            self.gpio.write(self.enable_pin[2][0], pigpio.LOW)
+            print("Error: limit switch Z2 pressed!")
+            self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
 
-    def set_cb_sw(self):
-        if self.gpio.read(self.limit_sw[0][0]):
+    def set_cb_sw(self, init=False):
+        if init:
+            if self.gpio.read(self.limit_sw[0][0]):
+                self.cb_sw_z0_flag_init = True
+                self.cb_sw_z0_flag = False
+            if self.gpio.read(self.limit_sw[1][0]):
+                self.cb_sw_z1_flag_init = True
+                self.cb_sw_z1_flag = False
+            if self.gpio.read(self.limit_sw[2][0]):
+                self.cb_sw_z2_flag_init = True
+                self.cb_sw_z2_flag = False
+        else:
             self.cb_sw_z0_flag = True
-        if self.gpio.read(self.limit_sw[1][0]):
             self.cb_sw_z1_flag = True
-        if self.gpio.read(self.limit_sw[2][0]):
             self.cb_sw_z2_flag = True
 
+    def move_5mm(self):
+        """After initialisation, move away from switch of 5 mm"""
+        self.delta = [-500, -500, -500]
+        self.mode = [Z0, Z1, Z2]
+        trajectory.pos_move(self)
 
 # Main function
 if __name__ == '__main__':

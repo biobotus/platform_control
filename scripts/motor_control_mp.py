@@ -35,7 +35,7 @@ class MotorControlMP(BaseMotorControl):
 
         # GPIO pins
         self.enable_pin = [[11]]  # pin 23
-        self.limit_sw   = [[21]]  # pin 40
+        self.limit_sw   = [[24]]  # pin 18
         self.clock_pin  = [ 10 ]  # pin 19
         self.dir_pin    = [  9 ]  # pin 21
 
@@ -58,8 +58,8 @@ class MotorControlMP(BaseMotorControl):
             self.error.publish('[code, {0}]'.format(self.node_name))  # TODO
             return
 
-        print('{0} freq : {1}'.format(self.node_name, self.f_max))
-        print('{0} delta : {1}.'.format(self.node_name, self.delta[MP]))
+        # print('{0} freq : {1}'.format(self.node_name, self.f_max))
+        # print('{0} delta : {1}.'.format(self.node_name, self.delta[MP]))
 
         if self.delta[MP]:
             trajectory.pos_move(self)
