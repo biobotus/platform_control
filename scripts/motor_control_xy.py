@@ -14,7 +14,6 @@ class MotorControlXY(BaseMotorControl):
 
     def __init__(self):
         BaseMotorControl.__init__(self)
-
         # ROS subscriptions
         # Expected format of Pulse_XY is [int_x, int_y]
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
@@ -32,7 +31,7 @@ class MotorControlXY(BaseMotorControl):
         self.modes      = [X, Y]
         self.sync       = [2, 1] # Axis X has 2 motors that have to be synced
         self.delta      = [0, 0]
-        self.direction  = [0, 0]
+        self.direction  = [1, 1]
         self.nb_pulse   = [0, 0]
 
         # GPIO pins
@@ -58,8 +57,10 @@ class MotorControlXY(BaseMotorControl):
                                            pigpio.FALLING_EDGE, \
                                            self.callback_limit_sw_y)
 
+
     # Callback for new position
     def callback_pos(self, data):
+
         try:
             self.delta = data.data
             assert len(self.delta) == 2

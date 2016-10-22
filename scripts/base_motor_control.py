@@ -36,7 +36,7 @@ class BaseMotorControl:
                 self.gpio.set_mode(self.limit_sw[A][B], pigpio.INPUT)
 
             self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
-            self.gpio.write(self.clock_pin[A], pigpio.LOW)
+            self.gpio.write(self.clock_pin[A], pigpio.HIGH)
             self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
             self.gpio.write(self.dir_pin[A], self.direction[A])
 

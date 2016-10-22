@@ -31,7 +31,7 @@ class GlobalMotorControl:
         no_pud_list = range(2, 27)
         no_pud_list.remove(self.global_enable_pin)
         for gpio_pin in no_pud_list:
-            self.gpio.set_pull_up_down(gpio_pin, pigpio.PUD_OFF)
+            self.gpio.set_pull_up_down(gpio_pin, pigpio.PUD_DOWN)
 
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
@@ -58,7 +58,7 @@ class GlobalMotorControl:
     def callback_sw(self, gpio, level, tick):
         if self.cb_active:
             self.cb_active = False
-            self.gpio.write(self.global_enable_pin, pigpio.HIGH)
+            #self.gpio.write(self.global_enable_pin, pigpio.HIGH)
             self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
             print("Cancelling global switch callback")
 
@@ -78,7 +78,6 @@ class GlobalMotorControl:
 if __name__ == '__main__':
     ID = os.getenv('ROS_HOSTNAME')
     ID = ID.split(".")[-1] if ID else ""
-
     try:
         gmc = GlobalMotorControl(ID)
         gmc.listener()

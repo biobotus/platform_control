@@ -12,6 +12,7 @@ Z2 = 2
 SP = 0
 MP = 0
 
+
 # Functions
 def pos_move(self):
     """
@@ -95,15 +96,15 @@ def gen_single_clock(self, A, dt):
 
     if plat_len > 0:
         for t in range(magic):
-            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[t]))
             ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[t]))
-            ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0,\
-                                          dt[t+magic+plat_len]))
+            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[t]))
             ramp_down.append(pigpio.pulse(0, 1<<self.clock_pin[A],\
                                           dt[t+magic+plat_len]))
+            ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0,\
+                                          dt[t+magic+plat_len]))
 
-        plateau.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[magic]))
         plateau.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[magic]))
+        plateau.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[magic]))
 
 
         if magic != 0:
@@ -141,8 +142,8 @@ def gen_single_clock(self, A, dt):
     else:
         if len(dt) == 1:
 
-            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[0]))
             ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], dt[0]))
+            ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, dt[0]))
 
 
             self.gpio.wave_add_new()
@@ -153,11 +154,11 @@ def gen_single_clock(self, A, dt):
 
         else:
             for t in dt[:len(dt)/2]:
-                ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
                 ramp_up.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+                ramp_up.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
             for t in dt[len(dt)/2:]:
-                ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
                 ramp_down.append(pigpio.pulse(0, 1<<self.clock_pin[A], t))
+                ramp_down.append(pigpio.pulse(1<<self.clock_pin[A], 0, t))
 
             self.gpio.wave_add_new()
             self.gpio.wave_add_generic(ramp_up)
@@ -181,6 +182,13 @@ def gen_single_clock(self, A, dt):
 
     for B in range(self.sync[A]):
         self.gpio.write(self.enable_pin[A][B], pigpio.LOW)
+
+
+    for A in self.mode:
+        # Direction : 1 for counter clockwise / 0 for clockwise
+        self.gpio.write(self.dir_pin[A], pigpio.HIGH)
+
+
 
     # Delete existing wave IDs
     if wave_id1 is not None:
