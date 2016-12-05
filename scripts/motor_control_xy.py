@@ -14,14 +14,15 @@ class MotorControlXY(BaseMotorControl):
 
     def __init__(self):
         BaseMotorControl.__init__(self)
+
         # ROS subscriptions
         # Expected format of Pulse_XY is [int_x, int_y]
         self.subscriber = rospy.Subscriber('Pulse_XY', IntList, self.callback_pos)
 
         # Frequency trapeze constants
-        self.f_max     = [10000, 10000]
-        self.f_min     = [  500,   500]
-        self.max_slope = [    4,     5]
+        self.f_max     = [5000, 5000]
+        self.f_min     = [  250,   250]
+        self.max_slope = [    6,     6]
         self.f_init    = 1000
         self.init_dir  = pigpio.HIGH
         self.init_list = []
@@ -35,10 +36,10 @@ class MotorControlXY(BaseMotorControl):
         self.nb_pulse   = [0, 0]
 
         # GPIO pins
-        self.enable_pin = [[24, 23], [ 7]]  # pins [18, 16] and [26]
-        self.limit_sw   = [[18, 15], [14]]  # pins [12, 10] and [ 8]
-        self.clock_pin  = [  8     ,  27 ]  # pins  24      and  13
-        self.dir_pin    = [ 25     ,  17 ]  # pins  22      and  11
+        self.enable_pin = [[11, 8], [ 10]]  # pins [18, 16] and [26]
+        self.limit_sw   = [[12, 6], [13]]  # pins [12, 10] and [ 8]
+        self.clock_pin  = [  5     ,  9 ]  # pins  24      and  13
+        self.dir_pin    = [ 7     ,  25 ]  # pins  22      and  11
 
         self.init_gpio()
         self.cb_sw_x0_flag = False
@@ -63,6 +64,7 @@ class MotorControlXY(BaseMotorControl):
 
         try:
             self.delta = data.data
+            print(self.delta)
             assert len(self.delta) == 2
             assert type(self.delta[X]) == int
             assert type(self.delta[Y]) == int
@@ -92,6 +94,7 @@ class MotorControlXY(BaseMotorControl):
             self.error.publish(str({"error_code": "Hw0", "name": self.node_name}))
 
     def callback_limit_sw_x1(self, gpio, level, tick):
+        print('x1 callback changed')
         if self.cb_sw_x1_flag_init:
             self.cb_sw_x1_flag_init = False
             self.gpio.write(self.enable_pin[0][1], pigpio.LOW)
@@ -137,6 +140,7 @@ class MotorControlXY(BaseMotorControl):
         """After initialisation, move away from switch of 5 mm"""
         self.delta = [157, 157]
         trajectory.pos_move(self)
+        #trajectory.pos_move_one(self)
 
 
 # Main function

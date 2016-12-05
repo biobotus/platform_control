@@ -22,8 +22,8 @@ class MotorControlZ(BaseMotorControl):
         # Frequency trapeze constants
         self.f_max     = [8000, 8000, 10000]
         self.f_min     = [ 500,  500,   500]
-        self.max_slope = [  10,   10,    10]
-        self.f_init    = 4000
+        self.max_slope = [  7,   7,    7]
+        self.f_init    = 3500
         self.init_dir  = pigpio.LOW
         self.init_list = []
 
@@ -32,14 +32,14 @@ class MotorControlZ(BaseMotorControl):
         self.modes     = [Z0, Z1, Z2]
         self.sync      = [1,  1,  1 ]
         self.delta     = [0,  0,  0 ]
-        self.direction = [0,  0,  0 ]
+        self.direction = [1,  1,  1 ]
         self.nb_pulse  = [0,  0,  0 ]
 
         # GPIO pins
-        self.enable_pin = [[22], [11], [13]]  # pins [22], [23] and [33]
-        self.limit_sw   = [[12], [16], [20]]  # pins [32], [36] and [38]
-        self.clock_pin  = [  9 ,   6 ,  26 ]  # pins  21 ,  31  and  37
-        self.dir_pin    = [ 10 ,   5 ,  19 ]  # pins  19 ,  29  and  35
+        self.enable_pin = [[23], [18], [14]]  # pins [22], [23] and [33]
+        self.limit_sw   = [[19], [16], [26]]  # pins [32], [36] and [38]
+        self.clock_pin  = [  24 ,   27 ,  15 ]  # pins  21 ,  31  and  37
+        self.dir_pin    = [ 22 ,   17 ,  4 ]  # pins  19 ,  29  and  35
 
         self.init_gpio()
         self.cb_sw_z0_flag = False

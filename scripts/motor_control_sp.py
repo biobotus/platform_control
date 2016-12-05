@@ -34,10 +34,10 @@ class MotorControlSP(BaseMotorControl):
         self.nb_pulse   = [0]
 
         # GPIO pins
-        self.enable_pin = [[22]]  # pin 15
+        self.enable_pin = [[27]]  # pin 15
         self.limit_sw   = [[23]]  # pin 16
-        self.clock_pin  = [ 17 ]  # pin 11
-        self.dir_pin    = [ 27 ]  # pin 13
+        self.clock_pin  = [ 18 ]  # pin 11
+        self.dir_pin    = [ 17 ]  # pin 13
 
         self.init_gpio()
 

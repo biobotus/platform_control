@@ -20,8 +20,8 @@ class GlobalMotorControl:
         self.error = rospy.Publisher('Error', String, queue_size=10)
 
         # GPIO pins
-        self.global_enable_pin =  4  # pin 7
-        self.global_limit_sw   = 21  # pin 40
+        self.global_enable_pin =  21  # pin 7
+        self.global_limit_sw   = 20  # pin 40
 
         self.gpio = pigpio.pi()
         self.gpio.wave_tx_stop()
@@ -30,17 +30,17 @@ class GlobalMotorControl:
         # Disable internal software pull-up/pull-down resistors
         no_pud_list = range(2, 27)
         no_pud_list.remove(self.global_enable_pin)
-        for gpio_pin in no_pud_list:
-            self.gpio.set_pull_up_down(gpio_pin, pigpio.PUD_DOWN)
+        #for gpio_pin in no_pud_list:
+        #    self.gpio.set_pull_up_down(gpio_pin, pigpio.PUD_DOWN)
 
         self.gpio.set_mode(self.global_enable_pin, pigpio.OUTPUT)
         self.gpio.write(self.global_enable_pin, pigpio.LOW)
         self.gpio.set_mode(self.global_limit_sw, pigpio.INPUT)
 
         self.cb_active = False
-        self.cb_sw = self.gpio.callback(self.global_limit_sw, \
-                                        pigpio.FALLING_EDGE, \
-                                        self.callback_sw)
+        #self.cb_sw = self.gpio.callback(self.global_limit_sw, \
+        #                                pigpio.FALLING_EDGE, \
+        #                                self.callback_sw)
 
     def __del__(self):
         if hasattr(self.__class__, 'gpio'):

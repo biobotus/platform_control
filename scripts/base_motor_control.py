@@ -38,7 +38,7 @@ class BaseMotorControl:
             self.gpio.set_mode(self.clock_pin[A], pigpio.OUTPUT)
             self.gpio.write(self.clock_pin[A], pigpio.HIGH)
             self.gpio.set_mode(self.dir_pin[A], pigpio.OUTPUT)
-            self.gpio.write(self.dir_pin[A], self.direction[A])
+            self.gpio.write(self.dir_pin[A], pigpio.HIGH)
 
     def callback_kill(self, data):
         if data.data == self.node_name:
